@@ -9,16 +9,20 @@
     <body>
         <h1>Chess Board</h1>
         
-        <!-- Checkbox for toggling transmitting status -->
+        <!-- Transmitting Tickbox -->
         <label>
             <input type="checkbox" id="transmittingCheckbox" {% if transmitting %} checked {% endif %}>
             Transmitting
         </label>
         
+        <!-- Board Container -->
         <div class="board-container" id="board-container">
             {{ board_html|safe }}
         </div>
         
+        <!-- New Reset Board Button -->
+        <button id="resetButton">Reset Board</button>
+
         <script>
             document.addEventListener('DOMContentLoaded', function() {
                 let draggedSourceSquare = null;
@@ -61,7 +65,7 @@
                                 // Update board with player's move
                                 boardContainer.innerHTML = data.board_html;
                                 // Now that the player's move was successful, play engine move
-                                return fetch('/engine_move', { method: 'POST' });
+                                return fetch('/update_physical_board', { method: 'POST' });
                             } else {
                                 // If player's move wasn't successful, throw an error to stop the chain
                                 throw new Error("Player move failed");
@@ -70,10 +74,9 @@
                         .then(response => response.json())
                         .then(data => {
                             if (data.status === 'success') {
-                                // Update board with engine move
-                                boardContainer.innerHTML = data.board_html;
+                                
                             } else {
-                                console.error("Engine move error:", data);
+                                console.error("Error playing physical Move:", data);
                             }
                         })
                         .catch(err => {
@@ -101,6 +104,24 @@
                     .catch(err => {
                         console.error("Error updating transmitting status:", err);
                     });
+                });
+
+                // Event listener for the reset board button
+                const resetButton = document.getElementById("resetButton");
+                resetButton.addEventListener('click', function() {
+                    fetch('/reset', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' }
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.status === 'success') {
+                            boardContainer.innerHTML = data.board_html;
+                        } else {
+                            console.error("Reset board failed", data);
+                        }
+                    })
+                    .catch(err => console.error("Error resetting board:", err));
                 });
             });
         </script>

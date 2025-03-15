@@ -33,10 +33,8 @@ def UpdatePiecePositions():
             nextPiece = str(board.piece_at(square))
             if nextPiece != "None":
                 piecePositions.append(GetComponents(square))
-async def EngineMove():
-    await PlayMove(engine.play(board, chess.engine.Limit(time=0.5)).move)
-    import time
-    time.sleep(5)
+def EngineMove():
+    return engine.play(board, chess.engine.Limit(time=0.5)).move
 def UndoMove():
     print(f"\n|<          Undoing Move {(board.ply()+1 // 2)}         >|")
     move = board.pop()
@@ -45,7 +43,8 @@ def UndoMove():
         storage[piece].EmptyStorage()
 
     UpdatePiecePositions()
-async def PlayMove(move: chess.Move):
+def PlayLastMove():
+    move = board.pop()
     targetSquare = GetComponents(move.to_square)
     originSquare = GetComponents(move.from_square)
     movingPiece = board.piece_at(move.from_square)
@@ -64,7 +63,7 @@ async def PlayMove(move: chess.Move):
     board.push(move)
     UpdatePiecePositions()
     print(f"\n|<          Move {(board.ply()+1 // 2)} {'Black' if board.turn else 'White'}: {move.uci()}          >|")
-    await RunPath(path)
+    RunPath(path)
     return True
 # <---------------------------> #
 

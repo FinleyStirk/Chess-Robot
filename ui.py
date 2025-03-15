@@ -1,8 +1,7 @@
-import asyncio
 from flask import Flask, render_template, request, jsonify, url_for
 import chess
 import logging
-from game import PlayMove, EngineMove, board
+from game import PlayLastMove, EngineMove, board
 from gantry import StartTransmitting, EndTransmitting, transmitting
 
 app = Flask(__name__)
@@ -51,18 +50,18 @@ def render_chess_board():
     return board_html
 
 @app.route('/')
-async def index():
-    board_html = await asyncio.to_thread(render_chess_board)
+def index():
+    board_html = render_chess_board()
     return render_template('index.html', board_html=board_html, transmitting=transmitting)
 
 @app.route('/move', methods=['POST'])
-async def move():
+def move():
     data = request.get_json()
     move_str = data.get('move')
     try:
-        move_obj = chess.Move.from_uci(move_str)
-        if move_obj in board.legal_moves:
-            await PlayMove(move_obj)
+        move = chess.Move.from_uci(move_str)
+        if move in board.legal_moves:
+            board.push(move)
             new_board_html = render_chess_board()
             return jsonify({'status': 'success', 'board_html': new_board_html})
         else:
@@ -70,23 +69,42 @@ async def move():
     except Exception as e:
         return jsonify({'status': 'error', 'message': str(e)})
 
-@app.route('/engine_move', methods=['POST'])
-async def engine_move():
+@app.route('/update_physical_board', methods=['POST'])
+def update_physical_board():
     try:
-        await EngineMove()
+        PlayLastMove()
+        return jsonify({'status': 'success'})
+    except Exception as e:
+        return jsonify({'status': 'error', 'message': str(e)})
+
+
+# FIX LATER
+@app.route('/engine_move', methods=['POST'])
+def engine_move():
+    try:
+        EngineMove()
         new_board_html = render_chess_board()
         return jsonify({'status': 'success', 'board_html': new_board_html})
     except Exception as e:
         return jsonify({'status': 'error', 'message': str(e)})
 
+
 @app.route('/update_transmitting', methods=['POST'])
-async def update_transmitting():
+def update_transmitting():
     data = request.get_json()
     if data.get('transmitting', False):
-        await asyncio.to_thread(StartTransmitting)
+        StartTransmitting()
     else:
-        await asyncio.to_thread(EndTransmitting)
+        EndTransmitting()
     return jsonify({'status': 'success', 'transmitting': transmitting})
+
+# New endpoint to reset the board
+@app.route('/reset', methods=['POST'])
+def reset():
+    board.reset()  # Resets the board to the initial position.
+    
+    new_board_html = render_chess_board()
+    return jsonify({'status': 'success', 'board_html': new_board_html})
 
 if __name__ == '__main__':
     app.run(debug=False)

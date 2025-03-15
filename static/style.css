@@ -1,0 +1,48 @@
+body {
+    font-family: Arial, sans-serif;
+    text-align: center;
+    margin-top: 20px;
+  }
+  
+  /* Container to control board size */
+.board-container {
+    width: 100%;
+    max-width: 750px; /* Adjust overall board size */
+    margin: 0 auto;
+}
+  
+  /* Chessboard styling */
+  .chessboard {
+    width: 100%;
+    border-collapse: collapse;
+    table-layout: fixed;  /* Ensures each cell is equal width */
+  }
+  
+  /* Each cell is made square using the padding-bottom trick */
+  .chessboard td {
+    position: relative;
+    width: 12.5%;           /* 1/8 of board width */
+    height: 0;              /* Force height via padding-bottom */
+    padding-bottom: 12.5%;  /* Makes cell square */
+    border: 1px solid #333; /* Optional: cell borders */
+  }
+  
+  /* Scale the chess piece images relative to the cell size */
+  .piece {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 90%;             /* Adjust as needed (80% of cell width) */
+    height: auto;
+    object-fit: contain;    /* Keeps image aspect ratio */
+  }
+  
+  .white {
+    background-color: #f0d9b5;
+  }
+  
+  .black {
+    background-color: #b58863;
+  }
+  

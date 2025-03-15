@@ -29,6 +29,13 @@ def render_chess_board():
             cell_color = "white" if ((file_index + rank_index) % 2 == 0) else "black"
             square_index = chess.parse_square(square)
             piece = board.piece_at(square_index)
+
+            highlight = ""
+            if len(board.move_stack) > 0:
+                lastMove = board.peek()
+                if chess.square_name(lastMove.from_square) == square or chess.square_name(lastMove.to_square) == square:
+                    highlight = " highlight"
+            
             if piece:
                 piece_char = piece.symbol()
                 if piece_char in piece_map:
@@ -38,7 +45,7 @@ def render_chess_board():
                     piece_html = ""
             else:
                 piece_html = ""
-            board_html += f"<td class='{cell_color}' data-square='{square}'>{piece_html}</td>"
+            board_html += f"<td class='{cell_color}{highlight}' data-square='{square}'>{piece_html}</td>"
         board_html += "</tr>"
     board_html += "</table>"
     return board_html

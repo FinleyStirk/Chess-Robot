@@ -52,9 +52,7 @@ def render_chess_board():
 
 @app.route('/')
 async def index():
-    # Run synchronous render_chess_board in a separate thread.
     board_html = await asyncio.to_thread(render_chess_board)
-    # render_template is synchronous; for a quick render it’s acceptable
     return render_template('index.html', board_html=board_html, transmitting=transmitting)
 
 @app.route('/move', methods=['POST'])
@@ -64,7 +62,6 @@ async def move():
     try:
         move_obj = chess.Move.from_uci(move_str)
         if move_obj in board.legal_moves:
-            # Process player's move
             await PlayMove(move_obj)
             new_board_html = render_chess_board()
             return jsonify({'status': 'success', 'board_html': new_board_html})
@@ -76,7 +73,6 @@ async def move():
 @app.route('/engine_move', methods=['POST'])
 async def engine_move():
     try:
-        # Process engine move
         await EngineMove()
         new_board_html = render_chess_board()
         return jsonify({'status': 'success', 'board_html': new_board_html})
@@ -93,6 +89,4 @@ async def update_transmitting():
     return jsonify({'status': 'success', 'transmitting': transmitting})
 
 if __name__ == '__main__':
-    # For asynchronous execution, run with an ASGI server:
-    # e.g., uvicorn app:app --reload
     app.run(debug=False)

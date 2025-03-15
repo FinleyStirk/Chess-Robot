@@ -4,26 +4,26 @@ body {
   margin-top: 20px;
 }
   
-  /* Container to control board size */
+
 .board-container {
   width: 100%;
-  max-width: 750px; /* Adjust overall board size */
+  max-width: 750px;
   margin: 0 auto;
 }
   
-  /* Chessboard styling */
+  
 .chessboard {
   width: 100%;
   border-collapse: collapse;
-  table-layout: fixed;  /* Ensures each cell is equal width */
+  table-layout: fixed;  
 }
   
-  /* Each cell is made square using the padding-bottom trick */
+
 .chessboard td {
   position: relative;
-  width: 12.5%;           /* 1/8 of board width */
-  height: 0;              /* Force height via padding-bottom */
-  padding-bottom: 12.5%;  /* Makes cell square */
+  width: 12.5%;          
+  height: 0;             
+  padding-bottom: 12.5%; 
   /* border: 1px solid #333;  */
 }
 
@@ -31,15 +31,14 @@ body {
   filter: sepia(0.6) saturate(1.75) brightness(1);
 }
 
-/* Scale the chess piece images relative to the cell size */
 .piece {
   position: absolute;
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  width: 95%;             /* Adjust as needed (80% of cell width) */
+  width: 95%;        
   height: auto;
-  object-fit: contain;    /* Keeps image aspect ratio */
+  object-fit: contain; 
 }
 
 .white {

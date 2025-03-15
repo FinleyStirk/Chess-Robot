@@ -2,7 +2,6 @@
 # <---------------------------> #
 import chess
 import chess.engine
-import asyncio
 from sys import platform
 # <---------------------------> #
 
@@ -36,6 +35,8 @@ def UpdatePiecePositions():
                 piecePositions.append(GetComponents(square))
 async def EngineMove():
     await PlayMove(engine.play(board, chess.engine.Limit(time=0.5)).move)
+    import time
+    time.sleep(5)
 def UndoMove():
     print(f"\n|<          Undoing Move {(board.ply()+1 // 2)}         >|")
     move = board.pop()

@@ -73,7 +73,7 @@ global board
 board = chess.Board()
 match (platform ):
     case "darwin":
-        engine = chess.engine.SimpleEngine.popen_uci("stockfish 2/stockfish-macos-m1-apple-silicon")
+        engine = chess.engine.SimpleEngine.popen_uci("stockfishMac/stockfish-macos-m1-apple-silicon")
     case "win32":
         raise "I forgot about the windows Stockfish :("
     case _:

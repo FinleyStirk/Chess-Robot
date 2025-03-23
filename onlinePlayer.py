@@ -1,7 +1,7 @@
-from common.utils import base_bp, render_chess_board
+from common.ui_utils import base_bp, render_chess_board
 from flask import Flask, jsonify
-from game import PlayLastMove, board
-from LichessAPI import create_ai_game, get_moves, get_current_gameid, make_move
+from common.game import PlayLastMove, board
+from common.LichessAPI import create_ai_game, get_moves, get_current_gameid, make_move
 from time import sleep
 import logging
 

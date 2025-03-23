@@ -1,6 +1,6 @@
-from common.utils import base_bp
+from common.ui_utils import base_bp
 from flask import Flask, jsonify
-from game import PlayLastMove, board
+from common.game import PlayLastMove, board
 import logging
 
 app = Flask(__name__)

@@ -1,8 +1,7 @@
 # Other Files #
 # <---------------------------> #
-from structs import Coord, Vector2, Node
+from common.structs import Coord, Vector2, Node
 from chess import Move, Board
-import asyncio
 # <---------------------------> #
 
 # Functions #
@@ -35,7 +34,7 @@ def OffBoardPath(start, end, piecePositions : list):
     pathFound = False
     while not pathFound:
         if len(openNodes) == 0:
-            print("impossible")
+            raise Exception("Impossible Path")
         
         currentNode = openNodes[0]
         for node in openNodes:

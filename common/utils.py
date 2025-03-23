@@ -1,12 +1,9 @@
-from flask import Flask, render_template, request, jsonify, url_for
+from flask import render_template, request, jsonify, url_for, Blueprint
 import chess
-import logging
-from game import PlayLastMove, EngineMove, board
+from game import EngineMove, board
 from gantry import StartTransmitting, EndTransmitting, transmitting
 
-app = Flask(__name__)
-log = logging.getLogger('werkzeug')
-log.setLevel(logging.ERROR)
+base_bp = Blueprint('base', __name__)
 
 piece_map = {
     'P': 'whitePawn.png', 'p': 'blackPawn.png',
@@ -49,12 +46,12 @@ def render_chess_board():
     board_html += "</table>"
     return board_html
 
-@app.route('/')
+@base_bp.route('/')
 def index():
     board_html = render_chess_board()
     return render_template('index.html', board_html=board_html, transmitting=transmitting)
 
-@app.route('/move', methods=['POST'])
+@base_bp.route('/move', methods=['POST'])
 def move():
     data = request.get_json()
     move_str = data.get('move')
@@ -69,17 +66,9 @@ def move():
     except Exception as e:
         return jsonify({'status': 'error', 'message': str(e)})
 
-@app.route('/update_physical_board', methods=['POST'])
-def update_physical_board():
-    try:
-        PlayLastMove()
-        return jsonify({'status': 'success'})
-    except Exception as e:
-        return jsonify({'status': 'error', 'message': str(e)})
-
 
 # FIX LATER
-@app.route('/engine_move', methods=['POST'])
+@base_bp.route('/engine_move', methods=['POST'])
 def engine_move():
     try:
         EngineMove()
@@ -89,7 +78,7 @@ def engine_move():
         return jsonify({'status': 'error', 'message': str(e)})
 
 
-@app.route('/update_transmitting', methods=['POST'])
+@base_bp.route('/update_transmitting', methods=['POST'])
 def update_transmitting():
     data = request.get_json()
     if data.get('transmitting', False):
@@ -99,12 +88,10 @@ def update_transmitting():
     return jsonify({'status': 'success', 'transmitting': transmitting})
 
 # New endpoint to reset the board
-@app.route('/reset', methods=['POST'])
+@base_bp.route('/reset', methods=['POST'])
 def reset():
-    board.reset()  # Resets the board to the initial position.
+    board.reset()
     
     new_board_html = render_chess_board()
     return jsonify({'status': 'success', 'board_html': new_board_html})
 
-if __name__ == '__main__':
-    app.run(debug=False)

@@ -7,7 +7,7 @@ from sys import platform
 
 # Other Files #
 # <---------------------------> #
-from structs import Coord, Vector2, Storage, Stack
+from common.structs import Vector2, Storage
 from gantry import RunPath
 from pathCalculator import OffBoardPath, IndirectPath, DirectPath, CastlePath
 # <---------------------------> #

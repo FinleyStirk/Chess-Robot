@@ -26,8 +26,9 @@
         <script>
             document.addEventListener('DOMContentLoaded', function() {
                 let draggedSourceSquare = null;
+                let isRequestInProgress = false;  // Flag to track if a request is in progress
                 const boardContainer = document.getElementById("board-container");
-                
+
                 // Use event delegation for dragstart on piece images
                 boardContainer.addEventListener("dragstart", function(e) {
                     if (e.target.tagName === "IMG") {
@@ -37,22 +38,30 @@
                         e.dataTransfer.effectAllowed = "move";
                     }
                 });
-                
+
                 // Allow drop on any cell
                 boardContainer.addEventListener("dragover", function(e) {
                     e.preventDefault();
                 });
-                
+
                 boardContainer.addEventListener("drop", function(e) {
                     e.preventDefault();
+
+                    // If a request is already in progress, do not allow another one
+                    if (isRequestInProgress) return;
+
                     // Get the target cell (td) that was dropped onto
                     const targetCell = e.target.closest("td");
                     if (!targetCell) return;
+
                     const targetSquare = targetCell.getAttribute("data-square");
                     if (draggedSourceSquare && targetSquare) {
                         // Construct UCI move string (e.g., "e2e4")
                         const move = draggedSourceSquare + targetSquare;
-                        
+
+                        // Set the flag to true to indicate a request is in progress
+                        isRequestInProgress = true;
+
                         // First, send player's move
                         fetch('/move', {
                             method: 'POST',
@@ -64,27 +73,34 @@
                             if (data.status === 'success') {
                                 // Update board with player's move
                                 boardContainer.innerHTML = data.board_html;
-                                // Now that the player's move was successful, play engine move
-                                return fetch('/update_physical_board', { method: 'POST' });
+                                // Now that the player's move was successful, update board
+                                return fetch('/process_move', { method: 'POST' });
                             } else {
                                 // If player's move wasn't successful, throw an error to stop the chain
                                 throw new Error("Player move failed");
                             }
                         })
+                        // Process Move
                         .then(response => response.json())
                         .then(data => {
                             if (data.status === 'success') {
-                                
+                                boardContainer.innerHTML = data.board_html;
                             } else {
-                                console.error("Error playing physical Move:", data);
+                                console.error("Error processing move:", data);
                             }
                         })
                         .catch(err => {
                             console.error("Error:", err);
+                        })
+                        .finally(() => {
+                            // Reset the flag once the request is complete
+                            isRequestInProgress = false;
                         });
                     }
+
                     draggedSourceSquare = null;
                 });
+
                 
                 // Handle checkbox change (sending transmitting status to server)
                 const checkbox = document.getElementById("transmittingCheckbox");

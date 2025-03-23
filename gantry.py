@@ -7,7 +7,7 @@ import time
 # Other Files #
 # <---------------------------> #
 from pathCalculator import SmoothPath
-from structs import Coord, Vector2
+from common.structs import Coord, Vector2
 # <---------------------------> #
 
 # Functions #

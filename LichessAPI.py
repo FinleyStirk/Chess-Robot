@@ -5,6 +5,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 API_TOKEN = os.getenv("LICHESS_API_TOKEN")
+USER_NAME = "Auto_Mate"
 
 HEADERS = {"Authorization": f"Bearer {API_TOKEN}"}
 def get_ongoing_games():
@@ -13,8 +14,13 @@ def get_ongoing_games():
     
     if response.status_code == 200:
         return response.json()
-    else:
-        return f"Error {response.status_code}: {response.text}"
+    raise Exception(f"Error {response.status_code}: {response.text}")
+    
+def get_current_gameid():
+    games = get_ongoing_games()["nowPlaying"]
+    if games:
+        return games[0]["fullId"]
+    return None
 
 def make_move(game_id, move):
     url = f"https://lichess.org/api/board/game/{game_id}/move/{move}"
@@ -22,8 +28,7 @@ def make_move(game_id, move):
     
     if response.status_code == 200:
         return "Move successful!"
-    else:
-        return f"Error {response.status_code}: {response.text}"
+    raise Exception(f"Error {response.status_code}: {response.text}")
     
 def get_moves(game_id):
     url = f"https://lichess.org/api/board/game/stream/{game_id}"
@@ -32,45 +37,19 @@ def get_moves(game_id):
             if line:
                 event = json.loads(line.decode("utf-8"))
                 if event.get("type") == "gameFull":
-                    moves = event.get("state", {}).get("moves", "")
+                    return event.get("state", {}).get("moves", "").split()
                 elif event.get("type") == "gameState":
-                    moves = event.get("moves", "")
-                else:
-                    continue 
-                if moves:
-                    move_list = moves.split()
-                    return move_list
-                
-def get_fen(game_id):
-    url = f"https://lichess.org/api/board/game/stream/{game_id}"
-    with requests.get(url, headers=HEADERS, stream=True) as response:
-        for line in response.iter_lines():
-            if line:
-                event = json.loads(line.decode("utf-8"))
-                if event.get("type") == "gameFull":
-                    fen = event.get("state", {}).get("fen", "")
-                elif event.get("type") == "gameState":
-                    fen = event.get("fen", "")
-                else:
-                    continue
-                if fen:
-                    return fen
+                    return event.get("moves", "").split()
 
 def create_ai_game(level=3):  
     url = "https://lichess.org/api/challenge/ai"
     data = {
         "level": level,
         "timeControl" : "unlimited",
-        "rated": False
+        "rated": False,
+        "color": "white",
     }
     response = requests.post(url, headers=HEADERS, json=data)
-    return response.json() if response.status_code == 200 else response.text
-
-
-
-
-# games = get_ongoing_games()
-# print(games)
-# GAME_ID = games["nowPlaying"][0]["fullId"]
-# make_move(GAME_ID, "e2e4")~
-# print(get_moves(GAME_ID))
+    if response.status_code == 201:
+        return response.json()['id']
+    raise Exception(f"Error {response.status_code}: {response.text}")

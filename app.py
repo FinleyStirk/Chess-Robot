@@ -1,9 +1,18 @@
-from flask import render_template, request, jsonify, url_for, Blueprint
+from flask import render_template, request, jsonify, url_for, Blueprint, Flask
 import chess
-from common.game import EngineMove, board
+from common.game import board
 from common.gantry import StartTransmitting, EndTransmitting, transmitting
+import logging
+from flask import Flask, jsonify
+from common.game import PlayLastMove, board, reset
+from common.LichessAPI import create_ai_game, get_moves, get_current_gameid, make_move
+from time import sleep
+import logging
 
-base_bp = Blueprint('base', __name__)
+
+app = Flask(__name__)
+log = logging.getLogger('werkzeug')
+log.setLevel(logging.ERROR)
 
 piece_map = {
     'P': 'whitePawn.png', 'p': 'blackPawn.png',
@@ -46,12 +55,12 @@ def render_chess_board():
     board_html += "</table>"
     return board_html
 
-@base_bp.route('/')
+@app.route('/')
 def index():
     board_html = render_chess_board()
-    return render_template('base.html', board_html=board_html, transmitting=transmitting)
+    return render_template(html, board_html=board_html, transmitting=transmitting)
 
-@base_bp.route('/move', methods=['POST'])
+@app.route('/move', methods=['POST'])
 def move():
     data = request.get_json()
     move_str = data.get('move')
@@ -66,9 +75,7 @@ def move():
     except Exception as e:
         return jsonify({'status': 'error', 'message': str(e)})
 
-
-
-@base_bp.route('/update_transmitting', methods=['POST'])
+@app.route('/update_transmitting', methods=['POST'])
 def update_transmitting():
     data = request.get_json()
     if data.get('transmitting', False):
@@ -77,3 +84,63 @@ def update_transmitting():
         EndTransmitting()
     return jsonify({'status': 'success', 'transmitting': transmitting})
 
+def online_game():
+    global move_count
+    global html
+    html = 'base.html'
+    GAME_ID = get_current_gameid()
+    if GAME_ID:
+        moves = get_moves(GAME_ID)
+        move_count = len(moves)
+        for move in moves:
+            board.push_uci(move)
+    else:
+        GAME_ID = create_ai_game()
+        move_count = 0
+    
+    global process_move
+    @app.route('/process_move', methods=['POST'])
+    def process_move():
+        global move_count
+        try:
+            make_move(GAME_ID, board.peek())
+            PlayLastMove()
+
+            moves = get_moves(GAME_ID)
+            while move_count == len(moves) - 1:
+                moves = get_moves(GAME_ID)
+                sleep(1)
+            board.push_uci(moves[-1])
+            PlayLastMove()
+            move_count = len(moves)
+
+            new_board_html = render_chess_board()
+            return jsonify({'status': 'success', 'board_html': new_board_html})
+        except Exception as e:
+            return jsonify({'status': 'error', 'message': str(e)})
+
+    app.run(debug=False)
+
+def two_player_digital():
+    global html
+    html = 'twoPlayerDigital.html'
+
+    global process_move
+    @app.route('/process_move', methods=['POST'])
+    def process_move():
+        try:
+            PlayLastMove()
+            return jsonify({'status': 'success', 'board_html': render_chess_board()})
+        except Exception as e:
+            return jsonify({'status': 'error', 'message': str(e)})
+    
+    global reset_board
+    @app.route('/reset', methods=['POST'])
+    def reset_board():
+        try:
+            reset()
+            return jsonify({'status': 'success', 'board_html': render_chess_board()})
+        except Exception as e:
+            return jsonify({'status': 'error', 'message': str(e)})
+        
+    app.run(debug=False)

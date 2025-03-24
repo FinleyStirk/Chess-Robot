@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+
+{% block title %}Alternative Chess Board{% endblock %}
+
+{% block header %}Two Player Digital{% endblock %}
+
+{% block content %}
+    {{ board_html|safe }}
+{% endblock %}
+
+{% block scripts %}
+    {{ super() }}
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const boardContainer = document.getElementById("board-container");
+            const resetButton = document.createElement("button");
+            resetButton.id = "resetButton";
+            resetButton.textContent = "Reset Board";
+            document.body.appendChild(resetButton);
+
+            resetButton.addEventListener('click', function() {
+                fetch('/reset', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        boardContainer.innerHTML = data.board_html;
+                    } else {
+                        console.error("Reset board failed", data);
+                    }
+                })
+                .catch(err => console.error("Error resetting board:", err));
+            });
+        });
+    </script>
+{% endblock %}

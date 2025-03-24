@@ -50,7 +50,7 @@ def RunPath(coords : list[Coord]):
         stepOne, stepTwo = CalculateNextInstruction(coord.x, coord.y)
         print(coord)
         RunMotors(stepOne, stepTwo, coord.emState)
-def StartTransmitting():
+def start_transmitting():
     global transmitting
     global ser
     transmitting = True
@@ -78,5 +78,5 @@ SquareLength = 3
 # <---------------------------> #
 positionX, positionY = 0, 0
 if transmitting:
-    StartTransmitting()
+    start_transmitting()
 # <---------------------------> #

@@ -1,7 +1,7 @@
 from flask import render_template, request, jsonify, url_for, Flask
 import chess
 from common.game import board
-from common.gantry import StartTransmitting, EndTransmitting, transmitting
+from common.gantry import start_transmitting, EndTransmitting, transmitting
 import logging
 from flask import Flask, jsonify
 from common.game import PlayLastMove, board, reset, PlayMove
@@ -78,7 +78,7 @@ def move():
 def update_transmitting():
     data = request.get_json()
     if data.get('transmitting', False):
-        StartTransmitting()
+        start_transmitting()
     else:
         EndTransmitting()
     return jsonify({'status': 'success', 'transmitting': transmitting})

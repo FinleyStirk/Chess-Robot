@@ -1,4 +1,4 @@
-from flask import render_template, request, jsonify, url_for, Blueprint, Flask
+from flask import render_template, request, jsonify, url_for, Flask
 import chess
 from common.game import board
 from common.gantry import StartTransmitting, EndTransmitting, transmitting

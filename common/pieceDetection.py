@@ -23,7 +23,7 @@ class Squares:
     def UpdateSquares(self, states):
         for y in range(ySize):
             for x in range(xSize):
-                if states[(y*8)+ x] == "1":
+                if states[(y*ySize)+ x] == "1":
                     self.strengths[y][x] = 1
                 else:
                     if self.strengths[y][x] > 0:
@@ -50,7 +50,7 @@ pygame.init()
 # Control Variables #
 # <---------------------------> #
 squareSize = 500
-xSize, ySize = 5, 1
+xSize, ySize = 2, 2
 decayFactor = 0.01
 # <---------------------------> #
 squares = Squares(xSize, ySize)

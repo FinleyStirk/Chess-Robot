@@ -2,9 +2,10 @@ from flask import render_template, request, jsonify, url_for, Flask
 import chess
 from common.game import board
 from common.gantry import start_transmitting, EndTransmitting, transmitting
+from common.structs import Vector2
 import logging
 from flask import Flask, jsonify
-from common.game import PlayLastMove, board, reset, PlayMove
+from common.game import PlayLastMove, board, reset, PlayMove, get_offboard_piece
 from common.LichessAPI import get_moves, make_move, get_current_game, await_opponent_move
 import logging
 
@@ -26,30 +27,39 @@ def render_chess_board():
     board_html = "<table class='chessboard'>"
     for rank in range(8, 0, -1):
         board_html += "<tr>"
-        for file in "abcdefgh":
-            square = file + str(rank)
-            file_index = ord(file) - ord('a')
+        for file_index in range(-3, 11):
             rank_index = 8 - rank
             cell_color = "white" if ((file_index + rank_index) % 2 == 0) else "black"
-            square_index = chess.parse_square(square)
-            piece = board.piece_at(square_index)
-
-            highlight = ""
-            if len(board.move_stack) > 0:
-                lastMove = board.peek()
-                if chess.square_name(lastMove.from_square) == square or chess.square_name(lastMove.to_square) == square:
-                    highlight = " highlight"
-            
-            if piece:
-                piece_char = piece.symbol()
-                if piece_char in piece_map:
-                    img_url = url_for('static', filename=f"PieceImages/{piece_map[piece_char]}")
-                    piece_html = f"<img src='{img_url}' class='piece' draggable='true' data-square='{square}'>"
+            if 0 <= file_index < 8:
+                file = chr(ord('a') + file_index)
+                square = file + str(rank)
+                square_index = chess.parse_square(square)
+                piece = board.piece_at(square_index)
+                highlight = ""
+                if len(board.move_stack) > 0:
+                    lastMove = board.peek()
+                    if chess.square_name(lastMove.from_square) == square or chess.square_name(lastMove.to_square) == square:
+                        highlight = "highlight"
+                if piece:
+                    piece_char = piece.symbol()
+                    if piece_char in piece_map:
+                        img_url = url_for('static', filename=f"PieceImages/{piece_map[piece_char]}")
+                        piece_html = f"<img src='{img_url}' class='piece' draggable='true' data-square='{square}'>"
+                    else:
+                        piece_html = ""
                 else:
                     piece_html = ""
+                board_html += f"<td class='{cell_color} {highlight}' data-square='{square}'>{piece_html}</td>"
+            elif file_index == -1 or file_index == 8:
+                board_html += f"<td class='background'></td>"
             else:
-                piece_html = ""
-            board_html += f"<td class='{cell_color}{highlight}' data-square='{square}'>{piece_html}</td>"
+                piece = get_offboard_piece(Vector2(file_index, rank - 1))
+                if piece:
+                    img_url = url_for('static', filename=f"PieceImages/{piece_map[piece]}")
+                    piece_html = f"<img src='{img_url}' class='piece' draggable='false'>"
+                else:
+                    piece_html = ""
+                board_html += f"<td class='{cell_color}'>{piece_html}</td>"
         board_html += "</tr>"
     board_html += "</table>"
     return board_html

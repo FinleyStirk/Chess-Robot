@@ -178,6 +178,10 @@ def reset():
     board.reset()
 def SkipTurn():
     board.push(chess.Move.null())
+def get_offboard_piece(position):
+    for piece in storage:
+        if position in storage[piece].filledStorage:
+            return piece
 # <---------------------------> #
 
 # Objects #

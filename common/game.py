@@ -184,9 +184,9 @@ global board
 board = chess.Board()
 match (platform ):
     case "darwin":
-        engine = chess.engine.SimpleEngine.popen_uci("common\stockfish\stockfishMac\stockfish-macos-m1-apple-silicon")
+        engine = chess.engine.SimpleEngine.popen_uci('common/stockfish/stockfishMac/stockfish-macos-m1-apple-silicon')
     case "win32":
-        engine = chess.engine.SimpleEngine.popen_uci("common\stockfish\stockfishWindows\stockfish-windows-x86-64-avx2.exe")
+        engine = chess.engine.SimpleEngine.popen_uci('common/stockfish/stockfishWindows/stockfish-windows-x86-64-avx2.exe')
     case _:
         raise "Incompatable OS"
 storage = {

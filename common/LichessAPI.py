@@ -53,3 +53,18 @@ def create_ai_game(level=3):
     if response.status_code == 201:
         return response.json()['id']
     raise Exception(f"Error {response.status_code}: {response.text}")
+
+def get_current_game():
+    GAME_ID = get_current_gameid()
+    if not GAME_ID:
+        GAME_ID = create_ai_game()
+    return GAME_ID
+
+def await_opponent_move(GAME_ID):
+    url = f"https://lichess.org/api/board/game/stream/{GAME_ID}"
+    with requests.get(url, headers=HEADERS, stream=True) as response:
+        for line in response.iter_lines():
+            if line:
+                data = json.loads(line)
+                if "moves" in data:
+                    return data["moves"].split()[-1]

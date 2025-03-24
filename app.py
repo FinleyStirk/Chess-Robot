@@ -4,9 +4,8 @@ from common.game import board
 from common.gantry import StartTransmitting, EndTransmitting, transmitting
 import logging
 from flask import Flask, jsonify
-from common.game import PlayLastMove, board, reset
-from common.LichessAPI import create_ai_game, get_moves, get_current_gameid, make_move
-from time import sleep
+from common.game import PlayLastMove, board, reset, PlayMove
+from common.LichessAPI import get_moves, make_move, get_current_game, await_opponent_move
 import logging
 
 
@@ -85,35 +84,21 @@ def update_transmitting():
     return jsonify({'status': 'success', 'transmitting': transmitting})
 
 def online_game():
-    global move_count
     global html
     html = 'base.html'
-    GAME_ID = get_current_gameid()
-    if GAME_ID:
-        moves = get_moves(GAME_ID)
-        move_count = len(moves)
-        for move in moves:
-            board.push_uci(move)
-    else:
-        GAME_ID = create_ai_game()
-        move_count = 0
+    GAME_ID = get_current_game()
+    initial_moves = get_moves(GAME_ID)
+    for move in initial_moves:
+        board.push_uci(move)
     
     global process_move
     @app.route('/process_move', methods=['POST'])
     def process_move():
-        global move_count
         try:
             make_move(GAME_ID, board.peek())
             PlayLastMove()
-
-            moves = get_moves(GAME_ID)
-            while move_count == len(moves) - 1:
-                moves = get_moves(GAME_ID)
-                sleep(1)
-            board.push_uci(moves[-1])
-            PlayLastMove()
-            move_count = len(moves)
-
+            PlayMove(await_opponent_move(GAME_ID))
+            
             new_board_html = render_chess_board()
             return jsonify({'status': 'success', 'board_html': new_board_html})
         except Exception as e:

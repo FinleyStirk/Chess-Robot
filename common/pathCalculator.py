@@ -10,7 +10,7 @@ def DirectPath(start, end):
     stepOne = Coord(start.x, start.y, 0)
     stepTwo = Coord(end.x, end.y, 1)
     return [stepOne, stepTwo]
-def IndirectPath(start, end):
+def KnightPath(start, end):
     path = []
 
     startCornerX = start.x + 0.5 if start.x <= end.x else start.x - 0.5
@@ -27,63 +27,67 @@ def IndirectPath(start, end):
     path.append(Coord(end.x, end.y, 1))
             
     return path
-def OffBoardPath(start, end, piecePositions : list):
-    hCost = lambda coord: min(abs(end.x - coord.x), abs(end.y - coord.y)) * 14 + abs(abs(end.x - coord.x) - abs(end.y - coord.y)) * 10
-    openNodes = [Node(0, hCost(start), None, start)]
-    closedNodes = []
-    pathFound = False
-    while not pathFound:
-        if len(openNodes) == 0:
-            raise Exception("Impossible Path")
-        
-        currentNode = openNodes[0]
-        for node in openNodes:
-            if node.f < currentNode.f:
-                currentNode = node
-
-        openNodes.remove(currentNode)
-        closedNodes.append(currentNode)
-
-        for offset, gCost in offsets:
-            nextNodeName = currentNode.name + offset
-            if nextNodeName == end:
-                pathFound = True
-                break
-            if nextNodeName in piecePositions:
-                continue
-            if nextNodeName.x not in boardSizeX or nextNodeName.y not in boardSizeY:
-                continue
-            if nextNodeName in [node.name for node in closedNodes]:
-                continue
-
-            nextNode = Node(currentNode.g + gCost, hCost(nextNodeName), currentNode, nextNodeName)
-            if nextNode.name not in [node.name for node in openNodes]:
-                openNodes.append(nextNode)
+def IndirectPath(start, end, piecePositions):
+    start, end = Node(start.x, start.y), Node(end.x, end.y)
+    traversedNodes = [start]
+    solved = False
+    for node in traversedNodes:
+        for offset in offsets:
+            nextNode = node + offset
+            nextNode.direction = offset
+            if offset == node.direction:
+                nextNode.parent = node.parent
             else:
-                for node in openNodes:
-                    if node.name == nextNode.name:
-                        if node.g > nextNode.g:
-                            openNodes.remove(node)
-                            openNodes.append(nextNode)
+                nextNode.parent = node
+            if nextNode == end:
+                currentStep = nextNode
+                solved = True
+                break
+            if nextNode.x not in boardSizeX or nextNode.y not in boardSizeY or Vector2(nextNode.x, nextNode.y) in piecePositions or nextNode in traversedNodes:
+                continue
+            traversedNodes.append(nextNode)
+        if solved:
+            break
     path = []
-    while currentNode.name != start:
-        path.append(Coord(currentNode.name.x, currentNode.name.y, 1))
-        currentNode = currentNode.parent
-    
-    path = path[::-1]
-    path.append(Coord(end.x, end.y, 1))
-    path.insert(0, Coord(start.x, start.y, 0))
-
-    previous_direction = None
-    simplifiedPath = [path[0]]
-    for i in range(1, len(path)-1):
-        direction = path[i+1] - path[i]
-        if previous_direction is None or direction != previous_direction:
-            simplifiedPath.append(path[i])
-        previous_direction = direction
-    simplifiedPath.append(path[-1])
-
-    return simplifiedPath
+    if not solved:
+        # When no possible path exists that means a pawn is blocking the way
+        if start.x == -3 or end.x == -3 or start.x == 10 or end.x == 10:
+            if start.x == -3:
+                # Move Pawn out of Way
+                path += DirectPath(Vector2(-2, start.y), Vector2(-1, start.y))
+                # Update the piece positions to reflect new pawn position
+                piecePositions.remove(Vector2(-2, start.y))
+                piecePositions.append(Vector2(-1, start.y))
+                # Recalculate path now that pawn was moved
+                path += IndirectPath(Vector2(start.x, start.y), Vector2(end.x, end.y), piecePositions)
+                # Move pawn back to original position
+                path += DirectPath(Vector2(-1, start.y), Vector2(-2, start.y))
+            elif end.x == -3:
+                path += DirectPath(Vector2(-2, end.y), Vector2(-1, end.y))
+                piecePositions.remove(Vector2(-2, end.y))
+                piecePositions.append(Vector2(-1, end.y))
+                path += IndirectPath(Vector2(start.x, start.y), Vector2(end.x, end.y), piecePositions)
+                path += DirectPath(Vector2(-1, end.y), Vector2(-2, end.y))
+            elif start.x == 10:
+                path += DirectPath(Vector2(9, start.y), Vector2(8, start.y))
+                piecePositions.remove(Vector2(9, start.y))
+                piecePositions.append(Vector2(8, start.y))
+                path += IndirectPath(Vector2(start.x, start.y), Vector2(end.x, end.y), piecePositions)
+                path += DirectPath(Vector2(8, start.y), Vector2(9, start.y))
+            elif end.x == 10:
+                path += DirectPath(Vector2(9, end.y), Vector2(8, end.y))
+                piecePositions.remove(Vector2(9, end.y))
+                piecePositions.append(Vector2(8, end.y))
+                path += IndirectPath(Vector2(start.x, start.y), Vector2(end.x, end.y), piecePositions)
+                path += DirectPath(Vector2(8, end.y), Vector2(9, end.y))
+            return path
+        else:
+            raise Exception("No possible path")
+    while currentStep != start:
+        path.insert(0, currentStep.toCoord(1))
+        currentStep = currentStep.parent
+    path.insert(0, start.toCoord(0))
+    return path
 def SmoothPath(start, end):
     direction = end - start
     if abs(direction.x) == (direction.y):
@@ -110,30 +114,42 @@ def SmoothPath(start, end):
         return None
     else:
         return middleStep
-def CastlePath(board : Board, move : Move):
+def CastlePath(board : Board, move : Move, reverse : bool = False):
     if board.turn:
         if board.is_kingside_castling(move):
-            return (Coord(7, 0, 0), Coord(5, 0, 1), Coord(4, 0, 0), Coord(4, -1, 1), Coord(6, -1, 1), Coord(6, 0, 1))
+            if reverse:
+                return (Coord(6, 0, 0), Coord(6, -1, 1), Coord(4, -1, 1), Coord(4, 0, 1), Coord(5, 0, 0), Coord(7, 0, 1))
+            else:
+                return (Coord(7, 0, 0), Coord(5, 0, 1), Coord(4, 0, 0), Coord(4, -1, 1), Coord(6, -1, 1), Coord(6, 0, 1))
         if board.is_queenside_castling(move):
-            return (Coord(0, 0, 0), Coord(3, 0, 1), Coord(4, 0, 0), Coord(4, -1, 1), Coord(2, -1, 1), Coord(2, 0, 1))
+            if reverse:
+                return (Coord(2, 0, 0), Coord(2, -1, 1), Coord(4, -1, 1), Coord(4, 0, 1), Coord(3, 0, 0), Coord(0, 0, 1))
+            else:
+                return (Coord(0, 0, 0), Coord(3, 0, 1), Coord(4, 0, 0), Coord(4, -1, 1), Coord(2, -1, 1), Coord(2, 0, 1))
     else:
         if board.is_kingside_castling(move):
-            return (Coord(7, 7, 0), Coord(5, 7, 1), Coord(4, 7, 0), Coord(4, 8, 1), Coord(6, 8, 1), Coord(6, 7, 1))
+            if reverse:
+                return (Coord(6, 7, 0), Coord(6, 8, 1), Coord(4, 8, 1), Coord(4, 7, 1), Coord(5, 7, 0), Coord(7, 7, 1))
+            else:
+                return (Coord(7, 7, 0), Coord(5, 7, 1), Coord(4, 7, 0), Coord(4, 8, 1), Coord(6, 8, 1), Coord(6, 7, 1))
         if board.is_queenside_castling(move):
-            return (Coord(0, 7, 0), Coord(3, 7, 1), Coord(4, 7, 0), Coord(4, 8, 1), Coord(2, 8, 1), Coord(2, 7, 1))
+            if reverse:
+                return (Coord(2, 7, 0), Coord(2, 8, 1), Coord(4, 8, 1), Coord(4, 7, 1), Coord(3, 7, 0), Coord(0, 7, 1))
+            else:
+                return (Coord(0, 7, 0), Coord(3, 7, 1), Coord(4, 7, 0), Coord(4, 8, 1), Coord(2, 8, 1), Coord(2, 7, 1))        
 # <---------------------------> #
     
 # Internal Variables #
 # <---------------------------> #
 offsets = (
-    (Vector2(1, 0), 10),
-    (Vector2(-1, 0), 10),
-    (Vector2(0, 1), 10),
-    (Vector2(0, -1), 10),
-    (Vector2(1, 1), 14),
-    (Vector2(1, -1), 14),
-    (Vector2(-1, 1), 14),
-    (Vector2(-1, -1), 14),
+    Vector2(1, 0),
+    Vector2(-1, 0),
+    Vector2(0, 1),
+    Vector2(0, -1),
+    Vector2(1, 1),
+    Vector2(1, -1),
+    Vector2(-1, 1),
+    Vector2(-1, -1),
 )
 boardSizeX = range(-3, 11)
 boardSizeY = range(-1, 9)

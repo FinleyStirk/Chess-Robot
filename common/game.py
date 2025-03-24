@@ -9,7 +9,7 @@ from sys import platform
 # <---------------------------> #
 from common.structs import Vector2, Storage
 from common.gantry import RunPath
-from common.pathCalculator import OffBoardPath, IndirectPath, DirectPath, CastlePath
+from common.pathCalculator import IndirectPath, DirectPath, CastlePath, KnightPath
 # <---------------------------> #
 
 # Functions #
@@ -23,26 +23,18 @@ def GetSquareName(index : int):
         position = GetComponents(index)
 
         return files[position.x] + ranks[position.y]
-def UpdatePiecePositions():
-        global piecePositions
-        piecePositions = []
-        for pieceStorage in storage.values():
-            for square in pieceStorage.filledStorage:
-                 piecePositions.append(square)
-        for square in range(64):
-            nextPiece = str(board.piece_at(square))
-            if nextPiece != "None":
-                piecePositions.append(GetComponents(square))
+def PiecePositions():
+    piecePositions = []
+    for pieceStorage in storage.values():
+        for square in pieceStorage.filledStorage:
+                piecePositions.append(square)
+    for square in range(64):
+        nextPiece = str(board.piece_at(square))
+        if nextPiece != "None":
+            piecePositions.append(GetComponents(square))
+    return piecePositions
 def EngineMove():
     return engine.play(board, chess.engine.Limit(time=0.5)).move
-def UndoMove():
-    print(f"\n|<          Undoing Move {(board.ply()+1 // 2)}         >|")
-    move = board.pop()
-    if board.is_capture(move):
-        piece = str(board.piece_at(move.from_square))
-        storage[piece].EmptyStorage()
-
-    UpdatePiecePositions()
 def PlayLastMove():
     move = board.pop()
     targetSquare = GetComponents(move.to_square)
@@ -52,19 +44,138 @@ def PlayLastMove():
 
     path = []
     if board.is_capture(move):
-         offBoardSquare = storage[capturedPiece].FillStorage()
-         path += OffBoardPath(targetSquare, offBoardSquare, piecePositions)
+         offBoardSquare = storage[capturedPiece].AddToStorage()
+         path += IndirectPath(targetSquare, offBoardSquare, PiecePositions())
     if movingPiece.piece_type == chess.KNIGHT:
-        path += IndirectPath(originSquare, targetSquare)
+        path += KnightPath(originSquare, targetSquare)
     elif board.is_castling(move):
         path += CastlePath(board, move)
     else:
         path += DirectPath(originSquare, targetSquare)
     board.push(move)
-    UpdatePiecePositions()
     print(f"\n|<          Move {(board.ply()+1 // 2)} {'Black' if board.turn else 'White'}: {move.uci()}          >|")
     RunPath(path)
     return True
+def PlayMove(uci):
+    board.push_uci(uci)
+    PlayLastMove()
+def UndoMove():
+    print(f"\n|<          Undoing Move {(board.ply()+1 // 2)}         >|")
+    move = board.pop()
+    targetSquare = GetComponents(move.to_square)
+    originSquare = GetComponents(move.from_square)
+    movingPiece = board.piece_at(move.from_square)
+    
+    path = []
+    if movingPiece.piece_type == chess.KNIGHT:
+        path += KnightPath(targetSquare, originSquare)
+    elif board.is_castling(move):
+        path += CastlePath(board, move, reverse=True)
+    else:
+        path += DirectPath(targetSquare, originSquare)
+    if board.is_capture(move):
+        capturedPiece = str(board.piece_at(move.to_square))
+        offBoardSquare = storage[capturedPiece].RemoveFromStorage()
+        path += IndirectPath(offBoardSquare, targetSquare, PiecePositions())
+
+    RunPath(path)
+def SetFEN(FENstring : str):
+    pieces = FENstring.split()[0]
+    y, x = 7, 0
+    targetPositions = {
+        "r": [],
+        "n": [],
+        "b": [],
+        "k": [],
+        "q": [],
+        "p": [],
+        "R": [],
+        "N": [],
+        "B": [],
+        "K": [],
+        "Q": [],
+        "P": [],
+    }
+    currentPositions = {
+        "r": [],
+        "n": [],
+        "b": [],
+        "k": [],
+        "q": [],
+        "p": [],
+        "R": [],
+        "N": [],
+        "B": [],
+        "K": [],
+        "Q": [],
+        "P": [],
+    }
+    for piece in pieces:
+        if piece == "/":
+            y -= 1
+            x = 0
+        elif piece.isdigit():
+            x += int(piece)
+        else:
+            targetPositions[piece].append(Vector2(x, y))
+            x += 1
+    for square in range(64):
+        nextPiece = str(board.piece_at(square))
+        if nextPiece != "None":
+            currentPositions[nextPiece].append(GetComponents(square))
+    # Check what pieces are already in the correct Locations
+    for piece in targetPositions:
+        for square in targetPositions[piece]:
+            if square in currentPositions[piece]:
+                targetPositions[piece].remove(square)
+                currentPositions[piece].remove(square)
+    # Remove Excess Pieces
+    path  = []
+    for piece in targetPositions:
+        while len(targetPositions[piece]) < len(currentPositions[piece]):
+            fromSquare = currentPositions[piece].pop()
+            toSquare = storage[piece].AddToStorage()
+            path += IndirectPath(fromSquare, toSquare, PiecePositions())
+            board.remove_piece_at(chess.square(fromSquare.x, fromSquare.y))
+    finished = False
+    # Repeat until All pieces moved to target
+    while not finished:
+        finished = True
+        for piece in targetPositions:
+            for square in targetPositions[piece]:
+                squareEmpty = True
+                for positions in currentPositions.values():
+                    if square in positions:
+                        squareEmpty = False
+                        break
+                if squareEmpty:
+                    if len(currentPositions[piece]) > 0:
+                        fromSquare = currentPositions[piece].pop()
+                        # Check if move is possible
+                        try:
+                            path += IndirectPath(fromSquare, square, PiecePositions())
+                            targetPositions[piece].remove(square)
+                            board.remove_piece_at(chess.square(fromSquare.x, fromSquare.y))
+                            board.set_piece_at(chess.square(square.x, square.y), chess.Piece.from_symbol(piece))
+                        except Exception:
+                            currentPositions[piece].append(fromSquare)
+                            print(f"{piece} : {fromSquare} --> {square} Not Possible")
+                    else:
+                        fromSquare = storage[piece].RemoveFromStorage()
+                        try:
+                            path += IndirectPath(fromSquare, square, PiecePositions())
+                            targetPositions[piece].remove(square)
+                            board.set_piece_at(chess.square(square.x, square.y), chess.Piece.from_symbol(piece))
+                        except Exception:
+                            storage[piece].AddToStorage()
+                            print(f"{piece} : {fromSquare} --> {square} Not Possible")
+                    finished = False
+    print(f"\n|<          Setting Up Board to {pieces}          >|")
+    RunPath(path)
+    board.set_board_fen(pieces)
+def reset():
+    SetFEN("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1")
+    board.reset()
 # <---------------------------> #
 
 # Objects #

@@ -60,6 +60,8 @@ def EndTransmitting():
     global transmitting
     transmitting = False
     ser.close()
+def Home():
+    RunMotors(0, 0, -1)
 # <---------------------------> #
 
 # Gantry Settings #

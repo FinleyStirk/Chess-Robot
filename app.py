@@ -69,6 +69,11 @@ def index():
     board_html = render_chess_board()
     return render_template(html, board_html=board_html, transmitting=transmitting)
 
+@app.route('/get_board', methods=['POST'])
+def get_board():
+    board_html = render_chess_board()
+    return jsonify({"status": "success", "board_html": board_html})
+
 @app.route('/move', methods=['POST'])
 def move():
     data = request.get_json()

@@ -25,16 +25,35 @@
         {% block scripts %}
         <script>
             document.addEventListener('DOMContentLoaded', function() {
+                let draggedElement = null;
                 let draggedSourceSquare = null;
                 let isRequestInProgress = false;
                 const boardContainer = document.getElementById("board-container");
 
                 boardContainer.addEventListener("dragstart", function(e) {
                     if (e.target.tagName === "IMG") {
+                        draggedElement = e.target;
                         draggedSourceSquare = e.target.getAttribute("data-square");
                         e.dataTransfer.setData("text/plain", draggedSourceSquare);
                         e.dataTransfer.effectAllowed = "move";
+                        setTimeout(() => e.target.style.opacity = "0", 0);
                     }
+                });
+
+                document.addEventListener("dragend", function(e) {
+                    fetch('/get_board', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' }
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.status === 'success') {
+                            boardContainer.innerHTML = data.board_html;
+                        } else {
+                            throw new Error("Failed to refresh board");
+                        }
+                    })
+                    .catch(err => console.error("Error:", err));
                 });
 
                 boardContainer.addEventListener("dragover", function(e) {
@@ -65,6 +84,8 @@
                                 boardContainer.innerHTML = data.board_html;
                                 return fetch('/process_move', { method: 'POST' });
                             } else {
+                                draggedElement.style.opacity = "1";
+                                draggedElement = null;
                                 throw new Error("Player move failed");
                             }
                         })

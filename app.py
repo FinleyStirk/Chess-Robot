@@ -123,7 +123,7 @@ def online_game():
 
 def two_player_digital():
     global html
-    html = 'twoPlayerDigital.html'
+    html = 'resetable.html'
 
     global process_move
     @app.route('/process_move', methods=['POST'])

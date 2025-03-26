@@ -22,6 +22,12 @@
             {% block content %}{{ board_html|safe }}{% endblock %}
         </div>
 
+        <!-- Undo Button -->
+        {% block undo_button %}{{ undo_button|safe }}{% endblock %}
+
+        <!-- Reset Button -->
+        {% block reset_button %}{{ reset_button|safe }}{% endblock %}
+
         {% block scripts %}
         <script>
             document.addEventListener('DOMContentLoaded', function() {

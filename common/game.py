@@ -60,6 +60,8 @@ def PlayMove(uci):
     board.push_uci(uci)
     PlayLastMove()
 def UndoMove():
+    if not board.move_stack:
+        raise Exception('No moves to undo')
     print(f"\n|<          Undoing Move {(board.ply()+1 // 2)}         >|")
     move = board.pop()
     targetSquare = GetComponents(move.to_square)

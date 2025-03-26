@@ -1,0 +1,25 @@
+<button id="resetButton">Reset Board</button>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const boardContainer = document.getElementById("board-container");
+        if (!boardContainer) return;
+
+        const resetButton = document.getElementById("resetButton");
+
+        resetButton.addEventListener('click', function() {
+            fetch('/reset', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    boardContainer.innerHTML = data.board_html;
+                } else {
+                    console.error("Reset board failed", data);
+                }
+            })
+            .catch(err => console.error("Error resetting board:", err));
+        });
+    });
+</script>

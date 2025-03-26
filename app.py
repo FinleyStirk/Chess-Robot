@@ -5,7 +5,7 @@ from common.gantry import start_transmitting, EndTransmitting, transmitting
 from common.structs import Vector2
 import logging
 from flask import Flask, jsonify
-from common.game import PlayLastMove, board, reset, PlayMove, get_offboard_piece
+import common.game as game
 from common.LichessAPI import get_moves, make_move, get_current_game, await_opponent_move
 import logging
 
@@ -53,7 +53,7 @@ def render_chess_board():
             elif file_index == -1 or file_index == 8:
                 board_html += f"<td class='background'></td>"
             else:
-                piece = get_offboard_piece(Vector2(file_index, rank - 1))
+                piece = game.get_offboard_piece(Vector2(file_index, rank - 1))
                 if piece:
                     img_url = url_for('static', filename=f"PieceImages/{piece_map[piece]}")
                     piece_html = f"<img src='{img_url}' class='piece' draggable='false'>"
@@ -66,8 +66,14 @@ def render_chess_board():
 
 @app.route('/')
 def index():
-    board_html = render_chess_board()
-    return render_template(html, board_html=board_html, transmitting=transmitting)
+    template = render_template(
+        "base.html",
+        board_html = render_chess_board(),
+        transmitting = transmitting,
+        reset_button = gamemode_settings['reset'],
+        undo_button = gamemode_settings['undo']
+    )
+    return template
 
 @app.route('/get_board', methods=['POST'])
 def get_board():
@@ -98,9 +104,23 @@ def update_transmitting():
         EndTransmitting()
     return jsonify({'status': 'success', 'transmitting': transmitting})
 
+@app.route('/reset', methods=['POST'])
+def reset_board():
+    try:
+        game.reset()
+        return jsonify({'status': 'success', 'board_html': render_chess_board()})
+    except Exception as e:
+        return jsonify({'status': 'error', 'message': str(e)})
+    
+@app.route('/undo', methods=['POST'])
+def undo_move():
+    try:
+        game.UndoMove()
+        return jsonify({'status': 'success', 'board_html': render_chess_board()})
+    except Exception as e:
+        return jsonify({'status': 'error', 'message': str(e)})
+
 def online_game():
-    global html
-    html = 'base.html'
     GAME_ID = get_current_game()
     initial_moves = get_moves(GAME_ID)
     for move in initial_moves:
@@ -111,8 +131,8 @@ def online_game():
     def process_move():
         try:
             make_move(GAME_ID, board.peek())
-            PlayLastMove()
-            PlayMove(await_opponent_move(GAME_ID))
+            game.PlayLastMove()
+            game.PlayMove(await_opponent_move(GAME_ID))
             
             new_board_html = render_chess_board()
             return jsonify({'status': 'success', 'board_html': new_board_html})
@@ -122,25 +142,23 @@ def online_game():
     app.run(debug=False)
 
 def two_player_digital():
-    global html
-    html = 'resetable.html'
-
     global process_move
     @app.route('/process_move', methods=['POST'])
     def process_move():
         try:
-            PlayLastMove()
-            return jsonify({'status': 'success', 'board_html': render_chess_board()})
-        except Exception as e:
-            return jsonify({'status': 'error', 'message': str(e)})
-    
-    global reset_board
-    @app.route('/reset', methods=['POST'])
-    def reset_board():
-        try:
-            reset()
+            game.PlayLastMove()
             return jsonify({'status': 'success', 'board_html': render_chess_board()})
         except Exception as e:
             return jsonify({'status': 'error', 'message': str(e)})
         
+    with app.app_context():
+        gamemode_settings['reset'] = render_template('resetButton.html')
+        gamemode_settings['undo'] = render_template('undoButton.html')
+
+    
     app.run(debug=False)
+
+gamemode_settings = {
+    'reset' : '',
+    'undo' : '',
+}

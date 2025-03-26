@@ -1,0 +1,25 @@
+<button id="undoButton">Undo</button>
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const boardContainer = document.getElementById("board-container");
+        if (!boardContainer) return;
+
+        const undoButton = document.getElementById("undoButton");
+
+        undoButton.addEventListener('click', function() {
+            fetch('/undo', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    boardContainer.innerHTML = data.board_html;
+                } else {
+                    console.error("Undoing move failed", data);
+                }
+            })
+            .catch(err => console.error("Error undoing move:", err));
+        });
+    });
+</script>

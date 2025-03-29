@@ -149,7 +149,7 @@ def draw_board():
     Y_SIZE = 8
 
     BLANK_FILES = (2, 11)
-    screen.fill((0, 0, 0))
+    screen.fill((255, 255, 255))
     for y in range(Y_SIZE):
         for x in range(X_SIZE):
             if x in BLANK_FILES:
@@ -179,7 +179,7 @@ def StartPuzzle():
     fen, turn, solution, rating = GetPuzzle(easiest.get(), hardest.get())
     SetFEN(fen)
     if turn == "b" and board.turn or turn == "w" and not board.turn:
-        SkipTurn()
+        skip_turn()
     firstMove = solution.pop(0)
     PlayMove(firstMove)
 # <---------------------------> #

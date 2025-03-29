@@ -82,7 +82,8 @@ def UndoMove():
 
     RunPath(path)
 def SetFEN(FENstring : str):
-    pieces = FENstring.split()[0]
+    fen_components = FENstring.split()
+    pieces = fen_components[0]
     y, x = 7, 0
     targetPositions = {
         "r": [],
@@ -178,7 +179,7 @@ def SetFEN(FENstring : str):
 def reset():
     SetFEN("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1")
     board.reset()
-def SkipTurn():
+def skip_turn():
     board.push(chess.Move.null())
 def get_offboard_piece(position):
     for piece in storage:

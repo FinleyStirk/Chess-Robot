@@ -7,6 +7,7 @@ import logging
 from flask import Flask, jsonify
 import common.game as game
 from common.LichessAPI import get_moves, make_move, get_current_game, await_opponent_move
+from common.puzzle import get_puzzle
 import logging
 
 
@@ -71,7 +72,8 @@ def index():
         board_html = render_chess_board(),
         transmitting = transmitting,
         reset_button = gamemode_settings['reset'],
-        undo_button = gamemode_settings['undo']
+        undo_button = gamemode_settings['undo'],
+        difficulty_slider = gamemode_settings['puzzle_difficulty']
     )
     return template
 
@@ -120,6 +122,7 @@ def undo_move():
     except Exception as e:
         return jsonify({'status': 'error', 'message': str(e)})
 
+
 def online_game():
     GAME_ID = get_current_game()
     initial_moves = get_moves(GAME_ID)
@@ -154,11 +157,11 @@ def two_player_digital():
     with app.app_context():
         gamemode_settings['reset'] = render_template('resetButton.html')
         gamemode_settings['undo'] = render_template('undoButton.html')
-
     
     app.run(debug=False)
 
 gamemode_settings = {
     'reset' : '',
     'undo' : '',
+    'puzzle_difficulty' : '',
 }

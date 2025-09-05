@@ -1,30 +1,16 @@
 // Controller for 16 sensors
 const int multiPlexerOne = A0;
+const int multiPlexerOnePins[4] = {13, 12, 11, 10};
 
 // Internal Variables
 int thresholdValue = 550;
-int numberOfSensors = 5;
+int numberOfSensors = 8;
 bool *sensorStates;
 
-String toBin(int num) {
-  String binary = "";
-  for (int i = 0; i < 4; i++) {
-    binary = num % 2 + binary;
-    num /= 2;
-  }
-  return binary;
-}
-
 int readSensor(int pinNumber, int multiplexer) {
-  String binPinNumber = toBin(pinNumber);
-  for (int i = 3; i >= 0; i--) {
-    int pin = 13 - i;
-    if (binPinNumber.charAt(i) == '1') {
-      digitalWrite(pin, HIGH);
-    }
-    else {
-      digitalWrite(pin, LOW);
-    }
+  for (int i = 0; i < 4; i++) {
+    Serial.print((pinNumber >> i) & 1);
+    digitalWrite(multiPlexerOnePins[i], (pinNumber >> i) & 1);
   }
   return analogRead(multiplexer);
 }
@@ -35,15 +21,14 @@ void updateSensorStates() {
     int sensorValue = readSensor(i, multiPlexerOne);
     transmittingData += sensorValue > thresholdValue ? "1" : "0";
   }
-  Serial.println(transmittingData);
+  Serial.println();
 }
 
 void setup() {
   sensorStates = new bool[numberOfSensors];
-  pinMode(10, OUTPUT);
-  pinMode(11, OUTPUT);
-  pinMode(12, OUTPUT);
-  pinMode(13, OUTPUT);
+  for (int i = 0; i < 4; i++) {
+    pinMode(multiPlexerOnePins[i], OUTPUT);
+  }
   pinMode(multiPlexerOne, INPUT);
   Serial.begin(9600);
 }

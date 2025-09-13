@@ -12,8 +12,8 @@ import logging
 
 
 app = Flask(__name__)
-log = logging.getLogger('werkzeug')
-log.setLevel(logging.ERROR)
+# log = logging.getLogger('werkzeug')
+# log.setLevel(logging.ERROR)
 
 piece_map = {
     'P': 'whitePawn.png', 'p': 'blackPawn.png',

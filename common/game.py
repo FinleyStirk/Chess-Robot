@@ -191,7 +191,7 @@ def get_offboard_piece(position):
 # <---------------------------> #
 global board
 board = chess.Board()
-match (platform ):
+match (platform):
     case "darwin":
         engine = chess.engine.SimpleEngine.popen_uci('common/stockfish/stockfishMac/stockfish-macos-m1-apple-silicon')
     case "win32":

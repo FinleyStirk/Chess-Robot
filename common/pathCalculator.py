@@ -10,6 +10,7 @@ def DirectPath(start, end):
     stepOne = Coord(start.x, start.y, 0)
     stepTwo = Coord(end.x, end.y, 1)
     return [stepOne, stepTwo]
+
 def KnightPath(start, end):
     path = []
 
@@ -27,6 +28,7 @@ def KnightPath(start, end):
     path.append(Coord(end.x, end.y, 1))
             
     return path
+
 def IndirectPath(start, end, piecePositions):
     start, end = Node(start.x, start.y), Node(end.x, end.y)
     traversedNodes = [start]
@@ -88,6 +90,7 @@ def IndirectPath(start, end, piecePositions):
         currentStep = currentStep.parent
     path.insert(0, start.toCoord(0))
     return path
+
 def SmoothPath(start, end):
     direction = end - start
     if abs(direction.x) == (direction.y):
@@ -114,6 +117,7 @@ def SmoothPath(start, end):
         return None
     else:
         return middleStep
+    
 def CastlePath(board : Board, move : Move, reverse : bool = False):
     if board.turn:
         if board.is_kingside_castling(move):

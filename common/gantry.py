@@ -34,11 +34,13 @@ def RunMotors(motorOneSteps, motorTwoSteps, emState=0):
     if transmitting:
         ser.write(dataStr.encode())
         WaitForArrival()
+
 def WaitForArrival():
     while True:
         if ser.inWaiting() > 0:
             recvData = ser.readline().decode().strip()
             return recvData
+        
 def RunPath(coords : list[Coord]):
     for coord in coords:
         intermediaryStep = SmoothPath(Vector2(positionX, positionY), Vector2(coord.x, coord.y))
@@ -50,16 +52,19 @@ def RunPath(coords : list[Coord]):
         stepOne, stepTwo = CalculateNextInstruction(coord.x, coord.y)
         print(coord)
         RunMotors(stepOne, stepTwo, coord.emState)
+
 def start_transmitting():
     global transmitting
     global ser
     transmitting = True
     ser = serial.Serial('com5', 9600)
     time.sleep(2)
+
 def EndTransmitting():
     global transmitting
     transmitting = False
     ser.close()
+    
 def Home():
     RunMotors(0, 0, -1)
     global positionX, positionY

@@ -7,10 +7,10 @@ int thresholdValue = 550;
 int numberOfSensors = 8;
 bool *sensorStates;
 
-int readSensor(int pinNumber, int multiplexer) {
+int readSensor(int sensor, int multiplexer) {
   for (int i = 0; i < 4; i++) {
-    Serial.print((pinNumber >> i) & 1);
-    digitalWrite(multiPlexerOnePins[i], (pinNumber >> i) & 1);
+    Serial.print((sensor >> i) & 1);
+    digitalWrite(multiPlexerOnePins[i], (sensor >> i) & 1);
   }
   return analogRead(multiplexer);
 }

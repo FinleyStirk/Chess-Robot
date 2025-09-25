@@ -1,6 +1,6 @@
 import pygame
 import common.gantry as gantry
-from common.structs import Coord
+from common.structs import GantryCommand
 
 
 
@@ -40,7 +40,7 @@ while running:
             x, y = pygame.mouse.get_pos()
             squareFile = (x // squareSize) - 3
             squareRank = 8 - (y // squareSize)
-            gantry.RunPath([Coord(squareFile, squareRank, emState)])
+            gantry.RunPath([GantryCommand(squareFile, squareRank, emState)])
         if event.type == pygame.KEYUP:
             emState = int(not emState)
             print(f"CHANGING EM STATE TO {emState}")

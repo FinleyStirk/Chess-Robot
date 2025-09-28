@@ -1,14 +1,11 @@
 Add typing
-Clean up structs file
-reorganise general package structure
-Sort out imports
 puzzles
 undoing moves
 fen setting
 more input systems
-dynamic changing between input systems
-implement physical gantry
+dynamic changing between game modes
 Document code
 Proper error messages
 Handle promotion
-Clean up structs
+make paths segmented where each segment starts with a travel and then pickup period
+externally inject serial object to physical gantry

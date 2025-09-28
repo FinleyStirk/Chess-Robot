@@ -1,5 +1,6 @@
 import chess
-from common.structs import PieceStorage, MoveInfo, Vector2
+
+from utils.structs import PieceStorage, MoveInfo, Vector2
 
 class BoardState:
     def __init__(self):
@@ -55,14 +56,14 @@ class BoardState:
     def get_next_free_storage(self, piece: chess.Piece):
         return self._storage.get_next_free(piece)
     
-    def get_occupied_positions(self) -> set[Vector2]:
+    def get_occupied_positions(self) -> frozenset[Vector2]:
         positions = set()
         for y in range(7, -1, -1):
             for x in range(-3, 11):
                 position = Vector2(x, y)
                 if self.piece_at(position):
                     positions.add(position)
-        return positions
+        return frozenset(positions)
     
     @staticmethod
     def get_components(square: chess.Square) -> Vector2:

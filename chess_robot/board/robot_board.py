@@ -1,8 +1,5 @@
-import chess
-import chess.engine
-from common.structs import Vector2, PieceStorage, MoveInfo
-from common.robot import Robot
-from common.board_state import BoardState
+from .robot import Robot
+from .board_state import BoardState
 
 # Functions #
 # <---------------------------> #

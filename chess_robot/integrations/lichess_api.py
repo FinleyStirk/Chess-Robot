@@ -1,7 +1,9 @@
-import berserk
 import os
 import time
 from dotenv import load_dotenv
+
+import berserk
+
 
 class MoveTimeoutError(Exception):
     pass
@@ -9,6 +11,7 @@ class MoveTimeoutError(Exception):
 class LichessAPIError(Exception):
     pass
 
+# have API token injected from outside?
 class LichessAPI:
     def __init__(self):
         load_dotenv()

@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 
-from utils.structs import GantryCommand, Vector2
+from chess_robot.utils.structs import Vector2
 
 
 
@@ -13,7 +13,7 @@ class Gantry(ABC):
     def __init__(self, position: Vector2):
         self._position = position
 
-    def calculate_motor_steps(self, target_position: Vector2):
+    def calculate_motor_steps(self, target_position: Vector2) -> Vector2:
         # Would rather do this with Vectors
         board_distance = target_position - self._position
 
@@ -27,11 +27,11 @@ class Gantry(ABC):
         return steps
     
     @abstractmethod
-    def home(self):
+    def home(self) -> None:
         pass
     
     @abstractmethod
-    def run_path(self, path: list[GantryCommand]):
+    def run_path(self, path: list[list[Vector2]]) -> None:
         pass
     
 

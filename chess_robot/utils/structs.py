@@ -1,14 +1,41 @@
 import math
 from typing import Optional
+from enum import Enum
 from dataclasses import dataclass
 
 import chess
 
+class CommandType(Enum):
+    MOVE = 0
+    UNDO = 1
+    SET_FEN = 2
+    RESET = 3
+
+@dataclass(frozen=True)
+class RobotCommand:
+    command: CommandType
+    data: Optional[str] = None
+
+    @classmethod
+    def move(cls, move_str: str) -> "RobotCommand":
+        return cls(CommandType.MOVE, move_str)
+
+    @classmethod
+    def undo(cls) -> "RobotCommand":
+        return cls(CommandType.UNDO)
+    
+    @classmethod
+    def reset(cls) -> "RobotCommand":
+        return cls(CommandType.RESET)
+    
+    def set_fen(cls, fen: str) -> "RobotCommand":
+        return cls(CommandType.SET_FEN, fen)
+
 
 @dataclass(frozen=True)
 class Vector2:
-    x: int
-    y: int
+    x: int | float
+    y: int | float
 
     @staticmethod
     def distance(v1: "Vector2", v2: "Vector2") -> float:
@@ -34,12 +61,6 @@ class Vector2:
     
     def __eq__(self, other: "Vector2") -> bool:
         return self.x == other.x and self.y == other.y
-    
-    
-@dataclass(frozen=True)
-class GantryCommand:
-    position: Vector2
-    magnet_state: int
 
 
 @dataclass(frozen=True)
@@ -62,6 +83,7 @@ class MoveInfo:
     
 
 class PieceStorage:
+    
     def __init__(self):
         self._state = {
             chess.Piece(chess.ROOK,   chess.BLACK): Storage(empty=[Vector2(-3, 0), Vector2(-3, 7)]),
@@ -99,6 +121,7 @@ class PieceStorage:
     
 
 class Storage:
+
     def __init__(self, filled: Optional[list[Vector2]] = None, empty: Optional[list[Vector2]] = None):
         self.filled = filled or []
         self.empty = empty or []

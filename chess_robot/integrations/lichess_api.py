@@ -20,7 +20,7 @@ class LichessAPI:
         session = berserk.TokenSession(API_TOKEN)
         self._client = berserk.Client(session=session)
 
-    def start_ai_game(self, ai_strength: int):
+    def start_ai_game(self, ai_strength: int) -> None:
         try:
             ai_game = self._client.challenges.create_ai(level=ai_strength)
         except Exception as e:
@@ -29,7 +29,7 @@ class LichessAPI:
         self._game_id = ai_game['id'],
         self._stream = self._client.bots.stream_game_state(ai_game['id'])
 
-    def attach_to_game(self, game_id):
+    def attach_to_game(self, game_id) -> None:
         self._game_id = game_id
         self._stream = self._client.bots.stream_game_state(game_id)
     
@@ -44,9 +44,9 @@ class LichessAPI:
             if time.time() - start_time > max_wait_time:
                 raise MoveTimeoutError('No move was made in the maximum wait time')
             
-    def get_move_stack(self):
+    def get_move_stack(self) -> list[str]:
         for event in self._stream:
             return event['state']['moves'].split()
                 
-    def make_move(self, move: str):
+    def make_move(self, move: str) -> None:
         self._client.bots.make_move(self._game_id, move)

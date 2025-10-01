@@ -1,7 +1,7 @@
 import chess.pgn
 
 from .base import GameMode
-from board.robot_board import RobotBoard
+from chess_robot.board.robot_board import RobotBoard
 
 
 class LoadGame(GameMode):
@@ -13,10 +13,10 @@ class LoadGame(GameMode):
         game = chess.pgn.read_game(pgn)
         self.moves = iter(game.mainline_moves())
 
-    def player_move(self):
+    def player_move(self) -> None:
         next_move = next(self.moves)
         self._board.play_move(next_move.uci())
         input()
 
-    def opponent_move(self):
+    def opponent_move(self) -> None:
         self.player_move()

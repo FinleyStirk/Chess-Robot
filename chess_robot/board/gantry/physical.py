@@ -2,7 +2,7 @@ import serial
 import time
 
 from .base import Gantry
-from utils.structs import Vector2, GantryCommand
+from chess_robot.utils.structs import Vector2
 
 
 class PhysicalGantry(Gantry):
@@ -12,28 +12,31 @@ class PhysicalGantry(Gantry):
         self._ser = serial.Serial(port, baudrate)
         time.sleep(setup_time)
 
-    def run_path(self, path: list[GantryCommand]):
-        for step in path:
-            motor_steps = self.calculate_motor_steps(step.x, step.y)
-            self.run_motors(motor_steps, step.magnet_state)
-            self._position = step.position
+    def run_path(self, path: list[list[Vector2]]) -> None:
+        for segment in path:
+            for index, step in segment:
+                motor_steps = self.calculate_motor_steps(step)
+                self.run_motors(steps=motor_steps, magnet_state=bool(index))
+                self._position = step
 
-    def run_motors(self, steps: Vector2, magnet_state: int, blocking: bool = True, max_wait_time: float = float('inf')):
-        # Implement some kind of response protocol to robot
+    def run_motors(self, steps: Vector2, magnet_state: int, blocking: bool = True, max_wait_time: float = float('inf')) -> None:
         dataStr = f"{steps.x},{steps.y},{magnet_state}\n"
 
         self._ser.write(dataStr.encode())
+        if blocking:
+            self.await_arrival(max_wait_time)
 
+        
+    # Implement some kind of response protocol to robot
+    def await_arrival(self, max_wait_time: float = float('inf')) -> str:
         start_time = time.time()
-        while blocking:
+        while time.time() - start_time < max_wait_time:
             if self._ser.in_waiting > 0:
                 received_data = self._ser.readline().decode().strip()
                 return received_data
-            
-            if time.time() - start_time > max_wait_time:
-                raise Exception(f"Unable to complete movement in time")
+        raise Exception(f"Unable to complete movement in time")
     
-    def home(self):
+    def home(self) -> None:
         self.run_motors(Vector2(0, 0), magnet_state=-1)
         self._position = Vector2(0, 0)
 

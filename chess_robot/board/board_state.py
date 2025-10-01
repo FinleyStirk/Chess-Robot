@@ -1,19 +1,22 @@
 import chess
 
-from utils.structs import PieceStorage, MoveInfo, Vector2
+from chess_robot.utils.structs import PieceStorage, MoveInfo, Vector2
 
 class BoardState:
     def __init__(self):
         self._board = chess.Board()
         self._storage = PieceStorage()
 
-    def play_move(self, move: MoveInfo):
-        self.push(move.uci)
+    def play_move(self, move: MoveInfo) -> None:
+        self._board.push_uci(move.uci)
         if move.captured_piece is not None:
             self._storage.add(move.captured_piece)
-
-    def push(self, move: str):
-        return self._board.push_uci(move)
+    
+    def undo_move(self) -> None:
+        move = self._board.pop()
+        move_info = self.parse_move(move.uci())
+        if move_info.captured_piece is not None:
+            self._storage.remove(move_info.captured_piece)
 
     def parse_move(self, move_uci: str) -> MoveInfo:
         move = self._board.parse_uci(move_uci)
@@ -47,13 +50,13 @@ class BoardState:
         else:
             return self._storage.piece_at(position)
     
-    def is_capture(self, move: chess.Move):
+    def is_capture(self, move: chess.Move) -> bool:
         return self._board.is_capture(move)
     
-    def is_castling(self, move: chess.Move):
+    def is_castling(self, move: chess.Move) -> bool:
         return self._board.is_castling(move)
     
-    def get_next_free_storage(self, piece: chess.Piece):
+    def get_next_free_storage(self, piece: chess.Piece) -> Vector2:
         return self._storage.get_next_free(piece)
     
     def get_occupied_positions(self) -> frozenset[Vector2]:

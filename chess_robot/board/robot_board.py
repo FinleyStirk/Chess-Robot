@@ -103,27 +103,29 @@ from .board_state import BoardState
 
 
 class RobotBoard:
+    
     def __init__(self, board_state: BoardState, robot: Robot):
         self._board_state = board_state
         self._robot = robot
 
-    def play_move(self, move_uci: str):
+    def play_move(self, move_uci: str) -> None:
         move = self._board_state.parse_move(move_uci=move_uci)
         self._board_state.play_move(move)
         self._robot.play_move(move)
 
-    def reset(self):
+    def reset(self) -> None:
         self.set_fen_string("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1")
 
-    def set_fen_string(self, fen_string: str):
+    def set_fen_string(self, fen_string: str) -> None:
         pass
 
-    def undo_move(self):
-        pass
+    def undo_move(self) -> None:
+        self._board_state.undo_move()
+        self._robot.undo_move()
 
-    def engine_move(self):
+    def engine_move(self) -> None:
         pass
     
-    def __repr__(self):
+    def __repr__(self) -> None:
         return repr(self._board_state)
 

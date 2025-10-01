@@ -1,7 +1,7 @@
 import pygame
 
 from .base import Gantry
-from utils.structs import Vector2, GantryCommand
+from chess_robot.utils.structs import Vector2
 
 
 class GraphicalGantry(Gantry):
@@ -28,26 +28,27 @@ class GraphicalGantry(Gantry):
             self.SQUARE_SIZE*self.Y_SIZE
         ))
 
-    def run_path(self, path: list[GantryCommand]):
+    def run_path(self, path: list[list[Vector2]]) -> None:
         num_steps = 50
-        for step in path:
-            distance = Vector2.distance(step.position, self._position)
-            time = distance / self.SPEED
-            for i in range(num_steps):
-                t = i / num_steps
-                pygame.event.get()
-                self.draw_squares()
-                self.draw_gantry(
-                    Vector2.lerp(self._position, step.position, t),
-                    self.ACTIVE_COLOUR if step.magnet_state == 1 else self.INACTIVE_COLOUR
-                )
-                pygame.display.update()
-                pygame.time.wait(int(1000*time/num_steps))
+        for index, segment in enumerate(path):
+            for step in segment:
+                distance = Vector2.distance(step, self._position)
+                time = distance / self.SPEED
+                for i in range(num_steps):
+                    t = i / num_steps
+                    pygame.event.get()
+                    self.draw_squares()
+                    self.draw_gantry(
+                        Vector2.lerp(self._position, step, t),
+                        self.INACTIVE_COLOUR if index else self.ACTIVE_COLOUR 
+                    )
+                    pygame.display.update()
+                    pygame.time.wait(int(1000*time/num_steps))
 
-            self._position = step.position
+                self._position = step
         pygame.time.wait(500)
 
-    def draw_squares(self):
+    def draw_squares(self) -> None:
         self.screen.fill((0, 0, 0))
         for y in range(self.Y_SIZE):
             for x in range(self.X_SIZE):
@@ -67,7 +68,7 @@ class GraphicalGantry(Gantry):
                     )
                 )
 
-    def draw_gantry(self, draw_position: Vector2, colour: tuple[int, int, int]):
+    def draw_gantry(self, draw_position: Vector2, colour: tuple[int, int, int]) -> None:
         x = draw_position.x + 3
         y = self.Y_SIZE - draw_position.y - 2
         pygame.draw.rect(
@@ -81,5 +82,5 @@ class GraphicalGantry(Gantry):
             )
         )
 
-    def home(self):
-        self.run_path([GantryCommand(0, 0, -1)])
+    def home(self) -> None:
+        pass

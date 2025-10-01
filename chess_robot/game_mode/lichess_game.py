@@ -1,6 +1,6 @@
 from .base import GameMode
-from integrations.lichess_api import LichessAPI
-from board.robot_board import RobotBoard
+from chess_robot.integrations.lichess_api import LichessAPI
+from chess_robot.board.robot_board import RobotBoard
 
 # Fix this
 class LichessAIGame(GameMode):
@@ -18,11 +18,11 @@ class LichessAIGame(GameMode):
         else:
             raise ValueError("Either an ai_strength or a game_id must be provided")
 
-    def player_move(self):
+    def player_move(self) -> None:
         move = input()
         self._board.play_move(move)
         self._lichess_api.make_move(move)
 
-    def opponent_move(self):
+    def opponent_move(self) -> None:
         move = self._lichess_api.wait_for_opponent_move()
         self._board.play_move(move)

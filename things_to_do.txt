@@ -1,11 +1,9 @@
-Add typing
 puzzles
-undoing moves
 fen setting
 more input systems
 dynamic changing between game modes
 Document code
 Proper error messages
 Handle promotion
-make paths segmented where each segment starts with a travel and then pickup period
 externally inject serial object to physical gantry
+fix lichess api

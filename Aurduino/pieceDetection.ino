@@ -15,12 +15,13 @@ int readSensor(int pinNumber, int multiplexer) {
 }
 
 void updateSensorStates() {
-  String transmittingData = "";
+  uint64_t board_state = 0;
   for (int i = 0; i < numberOfSensors; i++) {
     int sensorValue = readSensor(i, multiplexorOne);
-    transmittingData += sensorValue > thresholdValue ? "1" : "0";
+    board_state |= (uint64_t)(sensorValue > thresholdValue) << i;
   }
-  Serial.println(transmittingData);
+
+  Serial.println((unsigned long long)board_state);
 }
 
 void setup() {

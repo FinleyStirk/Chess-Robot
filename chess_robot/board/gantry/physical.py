@@ -7,10 +7,9 @@ from chess_robot.utils.structs import Vector2
 
 class PhysicalGantry(Gantry):
 
-    def __init__(self, port: str, baudrate: int, position: Vector2 = Vector2(0, 0), setup_time: float = 1):
+    def __init__(self, ser: serial.Serial, position: Vector2 = Vector2(0, 0)):
         super().__init__(position)
-        self._ser = serial.Serial(port, baudrate)
-        time.sleep(setup_time)
+        self._ser = ser
 
     def run_path(self, path: list[list[Vector2]]) -> None:
         for segment in path:

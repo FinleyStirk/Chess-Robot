@@ -21,7 +21,7 @@ void updateSensorStates() {
     board_state |= (uint64_t)(sensorValue > thresholdValue) << i;
   }
 
-  Serial.println((unsigned long long)board_state);
+  Serial.println((uint32_t)board_state);
 }
 
 void setup() {

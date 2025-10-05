@@ -30,6 +30,17 @@ class RobotCommand:
     
     def set_fen(cls, fen: str) -> "RobotCommand":
         return cls(CommandType.SET_FEN, fen)
+    
+
+@dataclass(frozen=True)
+class Puzzle:
+    fen: str
+    solution: tuple[str, ...]
+    rating: int
+
+    @property
+    def length(self) -> int:
+        return len(self.solution)
 
 
 @dataclass(frozen=True)
@@ -37,11 +48,13 @@ class Vector2:
     x: int | float
     y: int | float
 
+    @property
+    def magnitude(self) -> float:
+        return math.sqrt(self.x ** 2 + self.y ** 2)
+
     @staticmethod
     def distance(v1: "Vector2", v2: "Vector2") -> float:
-        x_distance_squared = (v1.x - v2.x) ** 2
-        y_distance_squared = (v1.y - v2.y) ** 2
-        return math.sqrt(x_distance_squared + y_distance_squared)
+        return (v1 - v2).magnitude
     
     @staticmethod
     def lerp(v1: "Vector2", v2: "Vector2", t: float) -> "Vector2":

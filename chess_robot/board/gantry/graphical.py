@@ -29,18 +29,19 @@ class GraphicalGantry(Gantry):
         ))
 
     def run_path(self, path: list[list[Vector2]]) -> None:
-        num_steps = 50
-        for index, segment in enumerate(path):
-            for step in segment:
+        num_steps = 100
+        for segment in path:
+            for index, step in enumerate(segment):
                 distance = Vector2.distance(step, self._position)
                 time = distance / self.SPEED
+                colour = self.INACTIVE_COLOUR if index else self.ACTIVE_COLOUR 
                 for i in range(num_steps):
                     t = i / num_steps
                     pygame.event.get()
                     self.draw_squares()
                     self.draw_gantry(
                         Vector2.lerp(self._position, step, t),
-                        self.INACTIVE_COLOUR if index else self.ACTIVE_COLOUR 
+                        colour
                     )
                     pygame.display.update()
                     pygame.time.wait(int(1000*time/num_steps))

@@ -49,6 +49,9 @@ class BoardState:
             return self._board.piece_at(index)
         else:
             return self._storage.piece_at(position)
+        
+    def set_fen(self, fen_string: str) -> None:
+        self._board.set_fen(fen_string)
     
     def is_capture(self, move: chess.Move) -> bool:
         return self._board.is_capture(move)

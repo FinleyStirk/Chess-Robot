@@ -1,6 +1,7 @@
 from . import *
 
-gantry = VirtualGantry()
+# gantry = VirtualGantry()
+gantry = GraphicalGantry()
 robot = Robot(gantry=gantry)
 
 board_state = BoardState()
@@ -8,12 +9,13 @@ robot_board = RobotBoard(board_state=board_state, robot=robot)
 
 player = input_method.CommandLine()
 opponent = input_method.CommandLine()
-game = TwoPlayerLocal(
-    board=robot_board, 
-    player_input=player, 
-    opponent_input=opponent
-)
-# game = LoadGame(robot_board, "chess_robot/games/Bobby Fischer vs Boris Spassky.pgn")
+# game = TwoPlayerLocal(
+#     board=robot_board, 
+#     player_input=player, 
+#     opponent_input=opponent
+# )
+game = LoadGame(robot_board, "chess_robot/games/Bobby Fischer vs Boris Spassky.pgn")
+game = PuzzleRush(robot_board, player, puzzle_file_path="chess_robot/puzzle.json")
 
 while True:
     print(game)

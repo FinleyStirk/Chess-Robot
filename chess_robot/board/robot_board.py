@@ -103,7 +103,7 @@ from .board_state import BoardState
 
 
 class RobotBoard:
-    
+
     def __init__(self, board_state: BoardState, robot: Robot):
         self._board_state = board_state
         self._robot = robot
@@ -116,8 +116,8 @@ class RobotBoard:
     def reset(self) -> None:
         self.set_fen_string("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1")
 
-    def set_fen_string(self, fen_string: str) -> None:
-        pass
+    def set_fen(self, fen_string: str) -> None:
+        self._board_state.set_fen(fen_string)
 
     def undo_move(self) -> None:
         self._board_state.undo_move()

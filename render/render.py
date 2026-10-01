@@ -27,7 +27,9 @@ unless it's on the PATH; run it from the repo's top folder.)
 The GPU is picked automatically (OptiX > CUDA > HIP > Metal, else CPU).
 --resume skips frames that already exist, so an interrupted run carries on
 (Blender only writes a frame once it's finished). --frame-range START END
-renders part of it; --samples N overrides the sample count.
+renders part of it; --samples N overrides the sample count; --resolution W H
+sets the output size (e.g. 1280 720 for web frames); --fps sets frames per
+second (everything is timed in seconds, so more fps = more, closer frames).
 
 Blender frame: metres, Z-up. The board's top surface is at z = 0.053 and
 white sits on the -X side, with the a-file towards -Y."""
@@ -495,6 +497,8 @@ def main():
     parser.add_argument("--frame-range", type=int, nargs=2, metavar=("START", "END"),
                         help="render only these frames of a video (inclusive)")
     parser.add_argument("--samples", type=int, help="override the Cycles sample count")
+    parser.add_argument("--resolution", type=int, nargs=2, metavar=("WIDTH", "HEIGHT"),
+                        help="output size (default: the shot's 1920x1080; previews/drafts render at half)")
     args = parser.parse_args(argv)
     if args.draft:
         args.engine = "workbench"
@@ -524,8 +528,8 @@ def main():
     cam = add_camera(**resolve_camera(camera_spec))  # a program's own "camera" overrides the shot's
     has_camera_steps = any("camera" in step for step in (program or {}).get("steps", []))
     rig = CameraRig(cam, camera_spec, args.fps) if has_camera_steps else None
-    configure_render(shot["resolution"], args.final, args.engine, video=bool(args.program or move),
-                     samples=args.samples)
+    configure_render(tuple(args.resolution) if args.resolution else shot["resolution"], args.final, args.engine,
+                     video=bool(args.program or move), samples=args.samples)
 
     os.makedirs(OUT_DIR, exist_ok=True)
     suffix = ("_draft" if args.draft else "" if args.final else "_preview") \

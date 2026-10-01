@@ -1,0 +1,1010 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Chess Robot Assembly Viewer</title>
+<style>
+  html, body { margin: 0; height: 100%; overflow: hidden; background: #1b1d21; }
+  #info {
+    position: fixed; top: 10px; left: 12px; z-index: 10;
+    font-family: -apple-system, sans-serif; color: #ddd; font-size: 13px;
+    background: rgba(0,0,0,0.35); padding: 6px 10px; border-radius: 6px;
+    max-width: 360px; line-height: 1.5;
+  }
+  #loading {
+    position: fixed; inset: 0; display: flex; align-items: center; justify-content: center;
+    color: #eee; font-family: -apple-system, sans-serif; font-size: 15px; z-index: 20;
+  }
+  #panel {
+    position: fixed; top: 10px; right: 12px; z-index: 10;
+    font-family: -apple-system, sans-serif; color: #ddd; font-size: 12.5px;
+    background: rgba(20,21,24,0.82); border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 8px; padding: 10px 12px;
+  }
+  #panel button {
+    background: #33363c; color: #eee; border: 1px solid #484c54; border-radius: 5px;
+    padding: 4px 8px; font-size: 12px; cursor: pointer;
+  }
+  #panel button:hover { background: #40444b; }
+  #panel button:disabled { opacity: 0.4; cursor: default; }
+  #panel button:disabled:hover { background: #33363c; }
+  #btnNextMove { margin-top: 6px; }
+  #status { color: #9fd6a0; margin-top: 6px; }
+  #simStatus { margin-top: 6px; padding-top: 6px; border-top: 1px solid rgba(255,255,255,0.08); }
+  #simStatus.connected { color: #7fd6f0; }
+  #simStatus.disconnected { color: #888; }
+</style>
+</head>
+<body>
+<div id="info">Chess Robot Assembly.3MF &nbsp;|&nbsp; drag empty space to orbit, scroll to zoom, right-drag to pan.<br/>
+Drag an <b style="color:#f3b06a">orange</b> core-rail part &rarr; whole gantry slides along Z only.<br/>
+Drag a <b style="color:#7fd6f0">cyan</b> carriage part &rarr; free in X/Z — its Z motion carries the gantry with it.</div>
+<div id="loading">Loading model…</div>
+
+<div id="panel">
+  <button id="btnReset">Reset position</button>
+  <button id="btnWireframe">Wireframe: OFF</button>
+  <button id="btnCopyCamera">Copy camera transform</button>
+  <div id="status"></div>
+  <div id="simStatus" class="disconnected">Robot sim: connecting…</div>
+  <button id="btnNextMove" disabled>Next move</button>
+</div>
+
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+    "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+  }
+}
+</script>
+
+<script type="module">
+import * as THREE from "three";
+import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+import { ThreeMFLoader } from "three/addons/loaders/3MFLoader.js";
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x1b1d21);
+
+const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 5000);
+camera.position.set(-289.65, 424.76, -220.35); // overwritten again once the model loads and sizes near/far — kept in sync for consistency
+
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setPixelRatio(window.devicePixelRatio);
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+document.body.appendChild(renderer.domElement);
+
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true;
+
+scene.add(new THREE.AmbientLight(0xffffff, 0.6));
+const dir1 = new THREE.DirectionalLight(0xffffff, 1.0);
+dir1.position.set(1, 2, 1);
+scene.add(dir1);
+const dir2 = new THREE.DirectionalLight(0xffffff, 0.5);
+dir2.position.set(-1, -1, -1);
+scene.add(dir2);
+
+const grid = new THREE.GridHelper(400, 40, 0x444444, 0x2a2a2a);
+scene.add(grid);
+
+// Confirmed by hand in the viewer (name + which numbered copy, 1-based).
+// GANTRY_PARTS: the whole moving assembly — the 17 core-rail parts plus
+// the 6 central-carriage parts they carry.
+const GANTRY_PARTS = [
+  ["MGN12H linear rail block", 1],
+  ["Final X carriage body", 1],
+  ["Final X carriage body", 2],
+  ["MGN12H linear rail block", 2],
+  ["3D printed Y carriage limit switch and linear rail mount", 1],
+  ["GT2 Timing belt idler gear", 4],
+  ["3D printed Y carriage limit switch and linear rail mount", 2],
+  ["MGN12H linear rail 400mm", 1],
+  ["MGN12H linear rail block", 3],
+  ["Y carriage U block adaptor", 1],
+  ["Y carriage block belt gripper shortened", 1],
+  ["Limit switches modified", 1],
+  ["GT2 Timing belt idler pulley", 1],
+  ["Limit switches modified", 2],
+  ["GT2 Timing belt idler pulley", 2],
+  ["GT2 Timing belt idler gear", 6],
+  ["M5x40 bolt for X carriage", 1],
+  ["Y carriage clear plate final version", 1],
+  ["M5x40 bolt for X carriage", 2],
+  ["M5x40 bolt for X carriage", 3],
+  ["Y carriage block belt gripper", 1],
+  ["M5x40 bolt for X carriage", 4],
+  ["Servo motor mount", 1],
+];
+
+// CARRIAGE_PARTS: the central Y-carriage subset (subset of GANTRY_PARTS).
+const CARRIAGE_PARTS = [
+  ["MGN12H linear rail block", 3],
+  ["Y carriage U block adaptor", 1],
+  ["Y carriage block belt gripper shortened", 1],
+  ["Y carriage clear plate final version", 1],
+  ["Y carriage block belt gripper", 1],
+  ["Servo motor mount", 1],
+];
+
+function matchesInstance(inst, list) {
+  return list.some(([n, idx]) => n === inst.name && idx === inst.typeIndex + 1);
+}
+
+function cleanName(n) {
+  return (n || "unnamed").replace(/\(Default\)Display State 1$/, "").trim();
+}
+
+const instances = [];         // { group, name, meshes, selected, isCarriage, origPosition, typeIndex }
+const typeGroups = new Map(); // cleanName -> [instance,...]
+const meshToInstance = new Map();
+const meshEdges = new Map();  // mesh -> LineSegments (edge-only wireframe twin)
+const extraMeshes = [];       // meshes from extra reference models (board, pieces) — not part of the gantry/carriage system
+
+// Clones a mesh's material (so highlighting one instance never affects
+// another copy sharing the same material) and builds its CAD-style
+// edge-only wireframe twin (only real silhouette/crease edges, not every
+// triangulation line), hidden until wireframe mode is toggled on.
+function buildMeshVisual(mesh) {
+  mesh.material = mesh.material.clone();
+  const edgesGeo = new THREE.EdgesGeometry(mesh.geometry, 20);
+  const lines = new THREE.LineSegments(edgesGeo, new THREE.LineBasicMaterial({ color: 0xffffff }));
+  lines.position.copy(mesh.position);
+  lines.rotation.copy(mesh.rotation);
+  lines.scale.copy(mesh.scale);
+  lines.visible = false;
+  mesh.parent.add(lines);
+  meshEdges.set(mesh, lines);
+}
+
+const loader = new ThreeMFLoader();
+loader.load(
+  encodeURI("Chess Robot Assembly.3MF"),
+  (object) => {
+    document.getElementById("loading").style.display = "none";
+
+    const box = new THREE.Box3().setFromObject(object);
+    const size = new THREE.Vector3();
+    box.getSize(size);
+    const center = new THREE.Vector3();
+    box.getCenter(center);
+    object.position.sub(center);
+
+    scene.add(object);
+
+    const maxDim = Math.max(size.x, size.y, size.z) || 1;
+    camera.near = maxDim / 100;
+    camera.far = maxDim * 20;
+    camera.updateProjectionMatrix();
+    // Fixed shot for the Fools Mate wireframe render — lined up by hand via
+    // the "Copy camera transform" button, not auto-fit from the model's
+    // bounding box (which is what previously overwrote this on every load).
+    camera.position.set(-289.65, 424.76, -220.35);
+    controls.target.set(0.00, 0.00, 0.00);
+    controls.update();
+    grid.scale.setScalar(maxDim / 100);
+
+    // ThreeMFLoader wraps the model in an extra unnamed Group (one per
+    // <build> item — this file has exactly one). The real per-part
+    // instances are its grandchildren, one level deeper than you'd expect.
+    const assemblyRoot = object.children[0] || object;
+    assemblyRoot.children.forEach((child) => {
+      const name = cleanName(child.name);
+      const meshes = [];
+      child.traverse((n) => {
+        if (n.isMesh) {
+          buildMeshVisual(n);
+          meshes.push(n);
+        }
+      });
+      if (!typeGroups.has(name)) typeGroups.set(name, []);
+      const typeList = typeGroups.get(name);
+      const inst = {
+        group: child, name, meshes, selected: false, isCarriage: false,
+        origPosition: child.position.clone(),
+        typeIndex: typeList.length, // stable position among same-named parts, in file order
+      };
+      instances.push(inst);
+      typeList.push(inst);
+      meshes.forEach((mesh) => meshToInstance.set(mesh, inst));
+    });
+
+    // Apply the confirmed gantry / carriage grouping and colour it.
+    instances.forEach((inst) => {
+      inst.isCarriage = matchesInstance(inst, CARRIAGE_PARTS);
+      inst.selected = inst.isCarriage || matchesInstance(inst, GANTRY_PARTS);
+      inst.meshes.forEach((mesh) => {
+        if (!mesh.material.emissive) return;
+        if (inst.isCarriage) {
+          mesh.material.emissive.setHex(0x35b6e0);
+          mesh.material.emissiveIntensity = 0.6;
+        } else if (inst.selected) {
+          mesh.material.emissive.setHex(0xd97b29);
+          mesh.material.emissiveIntensity = 0.55;
+        }
+      });
+    });
+
+    // Captured now, while gantryOffset/carriageOffset are still both 0 —
+    // this is the effector's true rest-state world position, the anchor
+    // gridToGantryOffsets() below uses to convert a board square into the
+    // exact offset that lands the effector on that square.
+    effectorRestWorld = getEffectorWorldPosition();
+
+    modelLoaded = true;
+    trySendReady();
+  },
+  undefined,
+  (err) => {
+    document.getElementById("loading").textContent = "Failed to load model — see console.";
+    console.error(err);
+  }
+);
+
+// Extra reference models — the board and the chess pieces. Static once
+// placed: not part of the gantry/carriage drag system. `targetArray`
+// decides whether a mesh participates in the wireframe toggle:
+// extraMeshes does (the board), pieceMeshes deliberately doesn't (pieces
+// always stay solid/coloured regardless of wireframe mode).
+function addVisual(root, targetArray = extraMeshes) {
+  root.traverse((n) => {
+    if (n.isMesh) {
+      buildMeshVisual(n);
+      targetArray.push(n);
+    }
+  });
+}
+
+const pieceMeshes = []; // never touched by the wireframe toggle
+
+// One base piece per type (Knight/Pawn/King/Bishop/Queen/Rook), keyed by
+// lowercased name — kept invisible, used only to build the starting
+// position in populateBoard() below.
+const basePieceByType = {};
+function normalizePieceName(name) {
+  return name.trim().toLowerCase();
+}
+
+function registerBaseTemplate(name, root) {
+  root.visible = false;
+  basePieceByType[normalizePieceName(name)] = { name, root };
+}
+
+const placedPieces = []; // every piece ever placed, including any mid-carry — so resetBoard() can find and remove all of them
+
+function placePieceClone(template, x, y, z) {
+  const clonedRoot = template.root.clone(true);
+  clonedRoot.visible = true;
+  clonedRoot.position.set(x, y, z);
+  scene.add(clonedRoot);
+  addVisual(clonedRoot, pieceMeshes);
+  placedPieces.push(clonedRoot);
+  return clonedRoot;
+}
+
+// Team colours — since the piece file only has one representative model
+// per type (no separate white/black geometry), pieces are told apart by
+// tinting their (already per-instance-cloned, via buildMeshVisual) material.
+const WHITE_PIECE_COLOR = 0x2fb8ac; // teal
+const BLACK_PIECE_COLOR = 0x808080; // grey
+
+function tintPiece(root, colorHex) {
+  root.traverse((n) => {
+    if (n.isMesh && n.material.color) {
+      n.material.color.setHex(colorHex);
+    }
+  });
+}
+
+// Which piece (if any) occupies each board square, keyed by "file,rank" —
+// the ground truth for what the carriage can pick up. Exact grid match
+// only, no proximity/distance guessing: the carriage only ever picks up a
+// piece when its own current grid square is a key in this map.
+const boardGrid = new Map();
+function gridKey(file, rank) { return `${file},${rank}`; }
+
+// Per-type resting height, found by hand — each piece type had a different
+// baked-in height back when they were all one grouped object in the file.
+const PIECE_INITIAL_Y = {
+  rook: 58.30,
+  knight: 57.20,
+  bishop: 60.20,
+  king: 61.00,
+  queen: 56.50,
+  pawn: 59.10,
+};
+
+// Every piece type's mesh sits off-centre from its own local origin (the
+// pivot placePieceClone positions and animateSimulatedMove's carry-tracking
+// both move directly) by some amount along local X — none of these pivots
+// was ever re-centred when the pieces were split out of one grouped display
+// object. Found by inspecting each type's own local mesh bounding box
+// (z-offset is exactly 0 for all of them; only X needs correcting). The
+// rook's is far larger than the rest (-5.9mm vs -0.8 to -3.3mm), which is
+// why it alone looked visibly "at the edge" rather than merely off-centre.
+const PIECE_LOCAL_OFFSET_X = {
+  rook: -5.8828,
+  knight: -2.5684,
+  bishop: 0.7883,
+  king: -0.7573,
+  queen: -1.2440,
+  pawn: -3.3079,
+};
+
+// Confirmed placements — the board's final position/rotation, and (before
+// it gets split into individual pieces) the piece-set container's.
+const INITIAL_MOVABLE_TRANSFORMS = {
+  "Cyan and aluminium full set.3MF": { position: { x: 0, y: 55, z: 0 }, rotationYDeg: 0 },
+  "temp full board top plate.3MF": { position: { x: -40, y: 50, z: -90 }, rotationYDeg: 90 },
+};
+
+function loadExtraModel(filename, { splitIntoPieces = false, initialY } = {}, onReady) {
+  loader.load(
+    encodeURI(filename),
+    (object) => {
+      const initial = INITIAL_MOVABLE_TRANSFORMS[filename];
+      if (initial) {
+        object.position.set(initial.position.x, initial.position.y, initial.position.z);
+        object.rotation.y = THREE.MathUtils.degToRad(initial.rotationYDeg || 0);
+      }
+      scene.add(object);
+      object.updateMatrixWorld(true);
+
+      if (splitIntoPieces) {
+        // ThreeMFLoader wraps the model in an extra unnamed Group (one per
+        // <build> item) — its children are the individual pieces. Snapshot
+        // the children array before iterating, since scene.attach() below
+        // mutates it (each attach() removes the child from this list).
+        const root = object.children[0] || object;
+        [...root.children].forEach((pieceRoot) => {
+          scene.attach(pieceRoot); // re-parent to scene, preserving world transform
+          const name = cleanName(pieceRoot.name).replace(/ - Cyan and aluminium$/i, "");
+          const typeY = PIECE_INITIAL_Y[normalizePieceName(name)];
+          if (typeY !== undefined) pieceRoot.position.y = typeY;
+          // Recentre the geometry on pieceRoot's own local origin once, here
+          // — permanently, at the template level — rather than compensating
+          // for the offset everywhere a piece later gets positioned
+          // (initial population *and* mid-move carry-tracking both just set
+          // .position directly and need this pivot to already be correct).
+          const offsetX = PIECE_LOCAL_OFFSET_X[normalizePieceName(name)] || 0;
+          pieceRoot.children.forEach((child) => { child.position.x -= offsetX; });
+          registerBaseTemplate(name, pieceRoot);
+        });
+        scene.remove(object); // now-empty wrapper
+      } else {
+        if (initialY !== undefined) object.position.y = initialY;
+        addVisual(object);
+      }
+
+      if (onReady) onReady();
+    },
+    undefined,
+    (err) => {
+      console.error(`Failed to load ${filename}:`, err);
+    }
+  );
+}
+loadExtraModel("Cyan and aluminium full set.3MF", { splitIntoPieces: true }, () => populateBoard());
+loadExtraModel("temp full board top plate.3MF");
+
+// Lays out a standard starting position from the 6 base piece templates,
+// given the board's own coordinate system: square (0,0) (a1, bottom-left)
+// sits at BOARD_ORIGIN, each square is SQUARE_SIZE_MM wide. The board is
+// rotated 90° about Y relative to the gantry frame, which swaps which
+// world axis is which: stepping along a rank (Rook->Knight->...) moves in
+// -Z, stepping along a file (back rank -> pawn rank -> ...) moves in -X.
+const SQUARE_SIZE_MM = 30; // 3cm
+const BOARD_ORIGIN = { x: -106, z: 104 };
+const STANDARD_BACK_ROW = ["Rook", "Knight", "Bishop", "Queen", "King", "Bishop", "Knight", "Rook"];
+
+// Single source of truth for where a square actually is, in world mm — used
+// both to render a piece there (below) and, via gridToGantryOffsets, to
+// compute exactly how far the gantry/carriage must move to reach it. Piece
+// rendering and gantry motion can never disagree since both read this.
+function squareWorldXZ(file, rank) {
+  // BOARD_ORIGIN was measured (by eye, before the grid grooves existed) as
+  // roughly square (0,0)'s centre, not its corner: converting the grooves'
+  // own precisely-known local coordinates into world space (accounting for
+  // the board's position + 90° Y rotation) puts the true corner at
+  // (-121, 120) and the true centre at (-106, 105) -- a near-exact match
+  // for BOARD_ORIGIN (-106, 104), off by ~1mm of measurement noise. So no
+  // extra half-square offset belongs here; adding one (as a previous
+  // version of this function did) double-shifts pieces a full half-square
+  // past centre into the next corner.
+  return {
+    x: BOARD_ORIGIN.x + rank * SQUARE_SIZE_MM,
+    z: BOARD_ORIGIN.z - file * SQUARE_SIZE_MM,
+  };
+}
+
+// Inverse of squareWorldXZ — nearest grid square to a world X/Z position,
+// used to figure out where a dragged piece was dropped.
+function worldXZToSquare(x, z) {
+  return {
+    rank: Math.round((x - BOARD_ORIGIN.x) / SQUARE_SIZE_MM),
+    file: Math.round((BOARD_ORIGIN.z - z) / SQUARE_SIZE_MM),
+  };
+}
+
+// Reverse lookup on boardGrid — which square (if any) a given piece root
+// currently occupies. Piece counts are small (<=32) so a linear scan is
+// fine; not worth threading a second synchronised map through every place
+// boardGrid already gets set/deleted.
+function squareOfPiece(pieceRoot) {
+  for (const [key, piece] of boardGrid.entries()) {
+    if (piece === pieceRoot) {
+      const [file, rank] = key.split(",").map(Number);
+      return { file, rank };
+    }
+  }
+  return null;
+}
+
+function pieceTypeAtSquare(col, row) {
+  if (row === 1 || row === 6) return "Pawn";
+  if (row === 0 || row === 7) return STANDARD_BACK_ROW[col];
+  return null;
+}
+
+function populateBoard() {
+  for (let row = 0; row < 8; row++) {
+    for (let col = 0; col < 8; col++) {
+      const typeName = pieceTypeAtSquare(col, row);
+      if (!typeName) continue;
+
+      const template = basePieceByType[normalizePieceName(typeName)];
+      if (!template) { console.warn(`Missing piece template: ${typeName}`); continue; }
+
+      const { x, z } = squareWorldXZ(col, row); // col = file, row = rank
+      const piece = placePieceClone(template, x, template.root.position.y, z); // inherits that type's own calibrated height
+      tintPiece(piece, row <= 1 ? WHITE_PIECE_COLOR : BLACK_PIECE_COLOR); // ranks 1-2 = white, 7-8 = black
+      if (typeName === "Knight" && row === 0) {
+        piece.rotation.y += Math.PI; // white's knights need the flip to face forward; grey's are already correct at the template's default orientation
+      }
+      boardGrid.set(gridKey(col, row), piece);
+    }
+  }
+}
+
+// A hard reset — not "move every piece back", just wipe and rebuild.
+// WebGantry.connect() sends this as the very first thing it does, so every
+// run starts from a known-clean board regardless of whatever state a
+// previous run left behind.
+function resetBoard() {
+  simAnimating = false;
+  heldPiece = null;
+  carriageFile = 0;
+  carriageRank = 0;
+
+  gantryOffset = 0;
+  carriageOffset = 0;
+  updatePositions();
+
+  placedPieces.forEach((piece) => {
+    scene.remove(piece);
+    piece.traverse((n) => {
+      if (n.isMesh) {
+        const idx = pieceMeshes.indexOf(n);
+        if (idx !== -1) pieceMeshes.splice(idx, 1);
+        meshEdges.delete(n);
+      }
+    });
+  });
+  placedPieces.length = 0;
+  boardGrid.clear();
+
+  populateBoard();
+  setMagnetIndicator(false);
+  document.getElementById("status").textContent = "Board reset.";
+}
+
+// ---- Drag interaction ----
+// Physical coupling: the 17 core-rail parts (orange) only slide along the
+// main rail — world Z. The 6 central-carriage parts (cyan) ride on top of
+// the core-rail assembly and add their own independent travel along world
+// X. So the carriage is the one with full X/Z reach: its Z component also
+// carries the whole gantry along (shared axis), while its X component is
+// purely local to the carriage. Dragging a core-rail part only changes the
+// shared Z offset — the carriage comes along for that, unchanged in X.
+const raycaster = new THREE.Raycaster();
+const pointerNDC = new THREE.Vector2();
+let dragging = false;
+let dragMode = "core-rail"; // "core-rail" | "carriage"
+let gantryOffset = 0;       // shared world-Z offset, applied to every gantry instance
+let carriageOffset = 0;     // world-X offset, applied only to carriage instances
+let gantryOffsetAtDragStart = 0;
+let carriageOffsetAtDragStart = 0;
+const dragLineDir = new THREE.Vector3(0, 0, 1);
+const dragPlaneNormal = new THREE.Vector3(0, 1, 0); // lock vertical (world Y)
+let dragRefPoint = new THREE.Vector3();
+let dragStartWorld = new THREE.Vector3();
+let dragStartParam = 0;
+
+// Physical travel limits.
+const GANTRY_Z_MIN = -40;
+const GANTRY_Z_MAX = 360;
+const CARRIAGE_X_MIN = -245;
+const CARRIAGE_X_MAX = 45;
+
+// ---- Live jog (chess_robot/jog.py) ----
+// Set once the Python side sends "jog-ready". While it's on, dragging the
+// gantry/carriage streams the effector's current board square to Python a
+// few times a second; Python forwards each as an absolute target to the
+// firmware, which retargets on the fly so the real gantry tracks the drag.
+let jogMode = false;
+let lastJogSentAt = 0;
+const JOG_STREAM_INTERVAL_MS = 45; // ~22 Hz
+
+function streamJogTarget(force = false) {
+  if (!jogMode || !simSocket || !simSocketOpen) return;
+  const now = performance.now();
+  if (!force && now - lastJogSentAt < JOG_STREAM_INTERVAL_MS) return;
+  lastJogSentAt = now;
+
+  // Current effector world X/Z = its rest position plus the live drag
+  // offsets, converted back to (fractional) board coordinates — the exact
+  // inverse of squareWorldXZ, which is also what gridToGantryOffsets uses.
+  const worldX = effectorRestWorld.x + carriageOffset;
+  const worldZ = effectorRestWorld.z + gantryOffset;
+  const file = (BOARD_ORIGIN.z - worldZ) / SQUARE_SIZE_MM;
+  const rank = (worldX - BOARD_ORIGIN.x) / SQUARE_SIZE_MM;
+  simSocket.send(JSON.stringify({ type: "jog", file, rank }));
+}
+
+// ---- Live link to the Python robot code (chess_robot/board/gantry/web.py) ----
+// WebGantry.connect() starts a WebSocket server and blocks until this page
+// says "ready" (sent once the model has actually finished loading, not just
+// once the socket connects). From then on each incoming "move" message is
+// animated at a real speed rather than snapped to instantly, and acked back
+// once the animation finishes — mirroring PhysicalGantry's blocking
+// send-then-await-arrival protocol over serial.
+const SIM_WS_URL = "ws://localhost:8765";
+const SIM_SPEED_MM_S = 150; // animation speed for simulated moves
+let simSocket = null;
+let simAnimating = false;
+let modelLoaded = false;
+let simSocketOpen = false;
+
+function trySendReady() {
+  if (simSocketOpen && modelLoaded && simSocket) {
+    simSocket.send(JSON.stringify({ type: "ready" }));
+    setSimStatus("Robot sim: connected", true);
+  }
+}
+
+function setSimStatus(text, connected) {
+  const el = document.getElementById("simStatus");
+  el.textContent = text;
+  el.classList.toggle("connected", connected);
+  el.classList.toggle("disconnected", !connected);
+}
+
+function setMagnetIndicator(on) {
+  // Visual stand-in for the electromagnet's on/off state — tints the
+  // end-effector mount green while it's holding a piece.
+  const servo = instances.find((i) => i.name === "Servo motor mount");
+  if (!servo) return;
+  servo.meshes.forEach((mesh) => {
+    if (!mesh.material.emissive) return;
+    if (on) {
+      mesh.material.emissive.setHex(0x35d67a);
+      mesh.material.emissiveIntensity = 0.8;
+    } else {
+      mesh.material.emissive.setHex(0x35b6e0); // back to normal carriage cyan
+      mesh.material.emissiveIntensity = 0.6;
+    }
+  });
+}
+
+// The effector is the carriage's own end mount — its world position is
+// where a held piece should track to (piece height/Y is left untouched;
+// only X/Z follow, since the piece just slides across the board surface).
+function getEffectorWorldPosition() {
+  const servo = instances.find((i) => i.name === "Servo motor mount");
+  return servo ? servo.group.getWorldPosition(new THREE.Vector3()) : new THREE.Vector3();
+}
+
+// Grid -> gantry offset, derived (not independently guessed) so a picked-up
+// piece can never visually mismatch the carriage: gantryOffset/carriageOffset
+// are deltas added to each gantry part's own resting mesh position (see
+// updatePositions()), not absolute world coordinates — so "how far the
+// gantry must move to reach square (file, rank)" is exactly the piece's own
+// true world position (squareWorldXZ, the same formula populateBoard() uses
+// to render it) minus the effector's own resting world position.
+let effectorRestWorld = new THREE.Vector3(); // captured once at load, offsets still 0 — see loader.load's onLoad above
+
+function gridToGantryOffsets(file, rank) {
+  const target = squareWorldXZ(file, rank);
+  return {
+    gantryOffset: target.z - effectorRestWorld.z,
+    carriageOffset: target.x - effectorRestWorld.x,
+  };
+}
+
+// The carriage always starts and ends a move exactly on a grid square —
+// this is the ground truth for "what square is the effector on right now",
+// used for grid-exact pickup rather than a continuous-space distance check.
+let carriageFile = 0;
+let carriageRank = 0;
+let heldPiece = null; // the piece currently riding along with the carriage, if any
+
+// requestAnimationFrame can be fully suspended (not just slowed) in a
+// backgrounded/hidden browser tab — a move's animation would then never
+// finish, so its "arrived" ack to WebGantry never gets sent, which looks
+// exactly like a hang from the Python side. setTimeout still fires
+// (throttled, but never fully frozen) even when hidden, so fall back to it
+// whenever the tab isn't visible, keeping moves progressing regardless of
+// window focus.
+function scheduleAnimationStep(fn) {
+  if (document.hidden) {
+    setTimeout(() => fn(performance.now()), 50);
+  } else {
+    requestAnimationFrame(fn);
+  }
+}
+
+function animateSimulatedMove(file, rank, magnet) {
+  simAnimating = true;
+  setMagnetIndicator(magnet); // magnet state is set for the whole leg, like the real serial command
+
+  if (magnet && !heldPiece) {
+    // Magnet just switched on — pick up only if the carriage's *current*
+    // square (before this move starts) is exactly an occupied grid cell.
+    const key = gridKey(carriageFile, carriageRank);
+    heldPiece = boardGrid.get(key) || null;
+    if (heldPiece) boardGrid.delete(key);
+  } else if (!magnet) {
+    heldPiece = null; // released — stays wherever it was last carried to
+  }
+
+  const startZ = gantryOffset;
+  const startX = carriageOffset;
+  const target = gridToGantryOffsets(file, rank);
+  const endZ = THREE.MathUtils.clamp(target.gantryOffset, GANTRY_Z_MIN, GANTRY_Z_MAX);
+  const endX = THREE.MathUtils.clamp(target.carriageOffset, CARRIAGE_X_MIN, CARRIAGE_X_MAX);
+  const distance = Math.hypot(endZ - startZ, endX - startX);
+  const durationMs = Math.max(150, (distance / SIM_SPEED_MM_S) * 1000);
+  const startTime = performance.now();
+
+  function step(now) {
+    const t = Math.min(1, (now - startTime) / durationMs);
+    gantryOffset = startZ + (endZ - startZ) * t;
+    carriageOffset = startX + (endX - startX) * t;
+    updatePositions();
+
+    if (heldPiece) {
+      const pos = getEffectorWorldPosition();
+      heldPiece.position.x = pos.x;
+      heldPiece.position.z = pos.z;
+    }
+
+    document.getElementById("status").textContent =
+      `Simulated move — gantry Z: ${gantryOffset.toFixed(1)} mm, carriage X: ${carriageOffset.toFixed(1)} mm`;
+
+    if (t < 1) {
+      scheduleAnimationStep(step);
+    } else {
+      carriageFile = file;
+      carriageRank = rank;
+      if (heldPiece) boardGrid.set(gridKey(carriageFile, carriageRank), heldPiece); // now occupies its new square
+      simAnimating = false;
+      if (simSocket && simSocketOpen) simSocket.send(JSON.stringify({ status: "arrived" }));
+    }
+  }
+  scheduleAnimationStep(step);
+}
+
+function connectSimSocket() {
+  setSimStatus("Robot sim: connecting…", false);
+  simSocket = new WebSocket(SIM_WS_URL);
+
+  simSocket.addEventListener("open", () => {
+    simSocketOpen = true;
+    setSimStatus("Robot sim: connected — waiting for model…", false);
+    trySendReady();
+  });
+
+  simSocket.addEventListener("close", () => {
+    simSocketOpen = false;
+    setSimStatus("Robot sim: disconnected — retrying…", false);
+    setTimeout(connectSimSocket, 2000); // keep retrying, the Python side may not be running yet
+  });
+
+  simSocket.addEventListener("error", () => {
+    simSocket.close();
+  });
+
+  simSocket.addEventListener("message", (event) => {
+    const msg = JSON.parse(event.data);
+    if (msg.type === "move") {
+      animateSimulatedMove(msg.file, msg.rank, !!msg.magnet);
+    } else if (msg.type === "reset") {
+      resetBoard();
+      if (simSocket && simSocketOpen) simSocket.send(JSON.stringify({ status: "reset-complete" }));
+    } else if (msg.type === "waiting-for-continue") {
+      btnNextMove.disabled = false;
+      setSimStatus("Robot sim: click 'Next move' to continue", true);
+    } else if (msg.type === "your-turn") {
+      myTurn = true;
+      setSimStatus("Robot sim: your move — drag a piece to a square", true);
+    } else if (msg.type === "player-move-result") {
+      if (msg.status === "accepted") {
+        myTurn = false; // WebInput has returned the command; this side's turn is over until the next "your-turn"
+        setSimStatus("Robot sim: move accepted — playing it out…", true);
+      } else {
+        setSimStatus(`Robot sim: illegal move (${msg.uci}) — try again`, true); // still your-turn, WebInput loops for another drag
+      }
+    } else if (msg.type === "jog-ready") {
+      // chess_robot/jog.py: dragging the gantry now streams to the real robot.
+      // Snap the model to the square the real gantry sits on post-home.
+      jogMode = true;
+      const o = gridToGantryOffsets(msg.file ?? 0, msg.rank ?? 0);
+      gantryOffset = THREE.MathUtils.clamp(o.gantryOffset, GANTRY_Z_MIN, GANTRY_Z_MAX);
+      carriageOffset = THREE.MathUtils.clamp(o.carriageOffset, CARRIAGE_X_MIN, CARRIAGE_X_MAX);
+      updatePositions();
+      setSimStatus("Robot sim: JOG — drag the gantry, the real one follows", true);
+    } else if (msg.type === "jog-status") {
+      setSimStatus(`Robot sim: JOG — ${msg.text}`, true);
+    }
+  });
+}
+connectSimSocket();
+
+function updatePositions() {
+  instances.forEach((inst) => {
+    const pos = inst.origPosition.clone();
+    if (inst.selected) pos.z += gantryOffset;
+    if (inst.isCarriage) pos.x += carriageOffset;
+    inst.group.position.copy(pos);
+  });
+}
+
+function updatePointerNDC(evt) {
+  const rect = renderer.domElement.getBoundingClientRect();
+  pointerNDC.x = ((evt.clientX - rect.left) / rect.width) * 2 - 1;
+  pointerNDC.y = -((evt.clientY - rect.top) / rect.height) * 2 + 1;
+}
+
+function computeCentroidWorld(list) {
+  const c = new THREE.Vector3();
+  list.forEach((inst) => c.add(inst.group.getWorldPosition(new THREE.Vector3())));
+  c.divideScalar(Math.max(list.length, 1));
+  return c;
+}
+
+function closestPointOnLineToRay(rayOrigin, rayDir, linePoint, lineDir) {
+  const r = new THREE.Vector3().subVectors(rayOrigin, linePoint);
+  const a = 1; // rayDir . rayDir (normalized)
+  const e = 1; // lineDir . lineDir (normalized)
+  const b = rayDir.dot(lineDir);
+  const c = rayDir.dot(r);
+  const f = lineDir.dot(r);
+  const denom = a * e - b * b;
+  return Math.abs(denom) < 1e-6 ? 0 : (a * f - b * c) / denom;
+}
+
+// ---- Human moves via drag (WebInput, chess_robot/input_method/web.py) ----
+// Only enabled once "your-turn" arrives, so a drag can never be sent while
+// Python is actually blocked elsewhere in the protocol (mid-animation, etc).
+// The dragged piece only ever *visually* follows the cursor for direct-
+// manipulation feedback; on release it always snaps straight back to its
+// real resting square immediately, regardless of the outcome. If the move
+// is accepted, the normal WebGantry "move" messages that follow shortly
+// after animate the actual carry — this never duplicates that animation or
+// moves boardGrid's bookkeeping itself. If rejected, the piece was already
+// back home, so there's nothing to undo.
+let myTurn = false;
+let pieceDragging = false;
+let draggedPieceRoot = null;
+let draggedPieceOrigin = null; // {file, rank} — where it snaps back to
+
+function findPieceRootFromMesh(mesh) {
+  let node = mesh;
+  while (node && node.parent !== scene) node = node.parent;
+  return node;
+}
+
+renderer.domElement.addEventListener("pointerdown", (evt) => {
+  if (!myTurn || simAnimating || dragging) return;
+  updatePointerNDC(evt);
+  raycaster.setFromCamera(pointerNDC, camera);
+  const hits = raycaster.intersectObjects(pieceMeshes, false);
+  if (hits.length === 0) return;
+
+  const root = findPieceRootFromMesh(hits[0].object);
+  const origin = root && squareOfPiece(root);
+  if (!root || !origin) return; // e.g. a piece mid-carry, not resting on a square
+
+  pieceDragging = true;
+  draggedPieceRoot = root;
+  draggedPieceOrigin = origin;
+  controls.enabled = false;
+});
+
+window.addEventListener("pointermove", (evt) => {
+  if (!pieceDragging) return;
+  updatePointerNDC(evt);
+  raycaster.setFromCamera(pointerNDC, camera);
+
+  const plane = new THREE.Plane().setFromNormalAndCoplanarPoint(dragPlaneNormal, draggedPieceRoot.position);
+  const pt = new THREE.Vector3();
+  if (raycaster.ray.intersectPlane(plane, pt)) {
+    draggedPieceRoot.position.x = pt.x;
+    draggedPieceRoot.position.z = pt.z;
+  }
+});
+
+window.addEventListener("pointerup", () => {
+  if (!pieceDragging) return;
+  pieceDragging = false;
+  controls.enabled = true;
+
+  const dropped = worldXZToSquare(draggedPieceRoot.position.x, draggedPieceRoot.position.z);
+  const restPos = squareWorldXZ(draggedPieceOrigin.file, draggedPieceOrigin.rank);
+  draggedPieceRoot.position.x = restPos.x; // always snap back — see comment above
+  draggedPieceRoot.position.z = restPos.z;
+
+  const onBoard = dropped.file >= 0 && dropped.file <= 7 && dropped.rank >= 0 && dropped.rank <= 7;
+  const actuallyMoved = dropped.file !== draggedPieceOrigin.file || dropped.rank !== draggedPieceOrigin.rank;
+  if (onBoard && actuallyMoved && simSocket && simSocketOpen) {
+    simSocket.send(JSON.stringify({ type: "player-move", from: draggedPieceOrigin, to: dropped }));
+  }
+  draggedPieceRoot = null;
+  draggedPieceOrigin = null;
+});
+
+renderer.domElement.addEventListener("pointerdown", (evt) => {
+  if (simAnimating) return; // don't let manual dragging fight a live simulated move
+  updatePointerNDC(evt);
+  const selected = instances.filter((i) => i.selected);
+  if (selected.length === 0) return;
+
+  raycaster.setFromCamera(pointerNDC, camera);
+  const meshes = selected.flatMap((i) => i.meshes);
+  const hits = raycaster.intersectObjects(meshes, false);
+  if (hits.length === 0) return; // let OrbitControls handle it
+
+  const hitInstance = meshToInstance.get(hits[0].object);
+
+  dragging = true;
+  controls.enabled = false;
+  gantryOffsetAtDragStart = gantryOffset;
+  carriageOffsetAtDragStart = carriageOffset;
+
+  if (hitInstance && hitInstance.isCarriage) {
+    dragMode = "carriage";
+    dragRefPoint = computeCentroidWorld(instances.filter((i) => i.isCarriage));
+    const plane = new THREE.Plane().setFromNormalAndCoplanarPoint(dragPlaneNormal, dragRefPoint);
+    const pt = new THREE.Vector3();
+    raycaster.ray.intersectPlane(plane, pt);
+    dragStartWorld = pt || dragRefPoint.clone();
+  } else {
+    dragMode = "core-rail";
+    dragRefPoint = computeCentroidWorld(selected);
+    dragStartParam = closestPointOnLineToRay(raycaster.ray.origin, raycaster.ray.direction, dragRefPoint, dragLineDir);
+  }
+});
+
+window.addEventListener("pointermove", (evt) => {
+  if (!dragging) return;
+  updatePointerNDC(evt);
+  raycaster.setFromCamera(pointerNDC, camera);
+
+  if (dragMode === "carriage") {
+    const plane = new THREE.Plane().setFromNormalAndCoplanarPoint(dragPlaneNormal, dragRefPoint);
+    const pt = new THREE.Vector3();
+    if (raycaster.ray.intersectPlane(plane, pt)) {
+      const delta = new THREE.Vector3().subVectors(pt, dragStartWorld);
+      gantryOffset = gantryOffsetAtDragStart + delta.z;
+      carriageOffset = THREE.MathUtils.clamp(carriageOffsetAtDragStart + delta.x, CARRIAGE_X_MIN, CARRIAGE_X_MAX);
+    }
+  } else {
+    const t = closestPointOnLineToRay(raycaster.ray.origin, raycaster.ray.direction, dragRefPoint, dragLineDir);
+    gantryOffset = gantryOffsetAtDragStart + (t - dragStartParam);
+  }
+
+  gantryOffset = THREE.MathUtils.clamp(gantryOffset, GANTRY_Z_MIN, GANTRY_Z_MAX);
+  updatePositions();
+  streamJogTarget();
+
+  document.getElementById("status").textContent = dragMode === "carriage"
+    ? `Carriage — gantry Z: ${gantryOffset.toFixed(1)} mm, carriage X: ${carriageOffset.toFixed(1)} mm`
+    : `Core rail — gantry Z: ${gantryOffset.toFixed(1)} mm`;
+});
+
+window.addEventListener("pointerup", () => {
+  if (dragging) {
+    dragging = false;
+    controls.enabled = true;
+    streamJogTarget(true); // send the final resting position, unthrottled
+  }
+});
+
+document.getElementById("btnReset").addEventListener("click", () => {
+  gantryOffset = 0;
+  carriageOffset = 0;
+  updatePositions();
+  document.getElementById("status").textContent = "";
+});
+
+// Disabled until Python explicitly asks for it (via "waiting-for-continue")
+// — clicking any earlier would send an unprompted "continue" that could be
+// mistaken for a move's own "arrived" reply on the same connection.
+const btnNextMove = document.getElementById("btnNextMove");
+btnNextMove.addEventListener("click", () => {
+  btnNextMove.disabled = true;
+  setSimStatus("Robot sim: connected", true);
+  if (simSocket && simSocketOpen) simSocket.send(JSON.stringify({ type: "continue" }));
+});
+
+let wireframeOn = false;
+const btnWireframe = document.getElementById("btnWireframe");
+btnWireframe.addEventListener("click", () => {
+  wireframeOn = !wireframeOn;
+  const allMeshes = [...instances.flatMap((inst) => inst.meshes), ...extraMeshes];
+  allMeshes.forEach((mesh) => {
+    mesh.visible = !wireframeOn;
+    const edges = meshEdges.get(mesh);
+    if (edges) edges.visible = wireframeOn;
+  });
+  grid.visible = !wireframeOn;
+  scene.background.setHex(wireframeOn ? 0x000000 : 0x1b1d21);
+  btnWireframe.textContent = `Wireframe: ${wireframeOn ? "ON" : "OFF"}`;
+});
+
+// Lets a shot be lined up by hand (orbit/zoom/pan to taste), then the exact
+// camera position + orbit target grabbed as a paste-able snippet, instead
+// of eyeballing numbers back and forth over chat.
+document.getElementById("btnCopyCamera").addEventListener("click", async () => {
+  const p = camera.position;
+  const t = controls.target;
+  const snippet =
+    `camera.position.set(${p.x.toFixed(2)}, ${p.y.toFixed(2)}, ${p.z.toFixed(2)});\n` +
+    `controls.target.set(${t.x.toFixed(2)}, ${t.y.toFixed(2)}, ${t.z.toFixed(2)});`;
+
+  let copied = false;
+  try {
+    await navigator.clipboard.writeText(snippet);
+    copied = true;
+  } catch (err) {
+    // clipboard permission can be denied depending on how the page is served — fall back to showing it
+  }
+
+  document.getElementById("status").textContent = copied
+    ? "Camera transform copied to clipboard."
+    : `Copy failed — camera transform: ${snippet.replace(/\n/g, " ")}`;
+  console.log(snippet);
+});
+
+// Clean-shot toggle for recording — hides the info banner and the whole
+// right-hand panel (which is what a button to do this would live in, so a
+// keyboard shortcut instead). Press H to hide, H again to bring it back.
+let uiVisible = true;
+function setUIVisible(visible) {
+  document.getElementById("info").style.display = visible ? "" : "none";
+  document.getElementById("panel").style.display = visible ? "" : "none";
+}
+window.addEventListener("keydown", (evt) => {
+  if (evt.key.toLowerCase() !== "h") return;
+  if (document.activeElement && ["INPUT", "TEXTAREA"].includes(document.activeElement.tagName)) return;
+  uiVisible = !uiVisible;
+  setUIVisible(uiVisible);
+});
+
+window.addEventListener("resize", () => {
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+});
+
+function animate() {
+  requestAnimationFrame(animate);
+  controls.update();
+  renderer.render(scene, camera);
+}
+animate();
+</script>
+</body>
+</html>

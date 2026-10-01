@@ -1,0 +1,65 @@
+{
+  "source": "Fools Mate.pgn",
+  "start": [
+    0,
+    0
+  ],
+  "steps": [
+    {
+      "move": [
+        5,
+        1
+      ],
+      "magnet": false
+    },
+    {
+      "move": [
+        5,
+        2
+      ],
+      "magnet": true
+    },
+    {
+      "move": [
+        4,
+        6
+      ],
+      "magnet": false
+    },
+    {
+      "move": [
+        4,
+        4
+      ],
+      "magnet": true
+    },
+    {
+      "move": [
+        6,
+        1
+      ],
+      "magnet": false
+    },
+    {
+      "move": [
+        6,
+        3
+      ],
+      "magnet": true
+    },
+    {
+      "move": [
+        3,
+        7
+      ],
+      "magnet": false
+    },
+    {
+      "move": [
+        7,
+        3
+      ],
+      "magnet": true
+    }
+  ]
+}

@@ -1,0 +1,116 @@
+{
+ "position": "rnbqkbnr/pppp1ppp/8/4p3/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 2",
+ "storage": [
+  {
+   "square": [
+    -3,
+    4
+   ],
+   "piece": "q"
+  },
+  {
+   "square": [
+    10,
+    4
+   ],
+   "piece": "Q"
+  }
+ ],
+ "start": [
+  6,
+  0
+ ],
+ "camera": {
+  "above": "g2",
+  "view_squares": 5,
+  "back_squares": 1.5
+ },
+ "steps": [
+  {
+   "pause": 0.5
+  },
+  {
+   "arrow": [
+    [
+     6,
+     0
+    ],
+    [
+     6,
+     2
+    ],
+    [
+     5,
+     2
+    ]
+   ],
+   "color": "#ff2a2a",
+   "width": 0.75,
+   "hold": 1.0
+  },
+  {
+   "pause": 2.0
+  },
+  {
+   "arrow": [
+    [
+     6,
+     0
+    ],
+    [
+     5.5,
+     0.5
+    ],
+    [
+     5.5,
+     1.5
+    ],
+    [
+     5,
+     2
+    ]
+   ],
+   "color": "#ff2a2a",
+   "width": 0.75,
+   "id": "move",
+   "hold": null
+  },
+  {
+   "pause": 1.3
+  },
+  {
+   "move": [
+    6,
+    0
+   ],
+   "magnet": false
+  },
+  {
+   "move": [
+    5.5,
+    0.5
+   ],
+   "magnet": true,
+   "consume_arrow": "move"
+  },
+  {
+   "move": [
+    5.5,
+    1.5
+   ],
+   "magnet": true,
+   "consume_arrow": "move"
+  },
+  {
+   "move": [
+    5,
+    2
+   ],
+   "magnet": true,
+   "consume_arrow": "move"
+  },
+  {
+   "pause": 1.0
+  }
+ ]
+}

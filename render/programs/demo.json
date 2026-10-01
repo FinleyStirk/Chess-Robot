@@ -1,0 +1,21 @@
+{
+  "speed_mm_s": 150,
+  "steps": [
+    {"pause": 0.5},
+    {"move": "e2"},
+    {"move": "e4", "magnet": true},
+    {"pause": 0.4},
+
+    {"move": "g8"},
+    {"move": [5.5, 6.5], "magnet": true},
+    {"move": [5.5, 5.0], "magnet": true},
+    {"move": "f6", "magnet": true},
+    {"pause": 0.4},
+
+    {"move": "d2"},
+    {"move": "d4", "magnet": true},
+    {"pause": 0.4},
+
+    {"move": [3.5, 3.5]}
+  ]
+}

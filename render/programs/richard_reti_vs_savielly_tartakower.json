@@ -1,0 +1,604 @@
+{
+  "source": "Richard Reti vs Savielly Tartakower.pgn",
+  "start": [
+    0,
+    0
+  ],
+  "steps": [
+    {
+      "move": [
+        4,
+        1
+      ],
+      "magnet": false
+    },
+    {
+      "move": [
+        4,
+        3
+      ],
+      "magnet": true
+    },
+    {
+      "move": [
+        2,
+        6
+      ],
+      "magnet": false
+    },
+    {
+      "move": [
+        2,
+        5
+      ],
+      "magnet": true
+    },
+    {
+      "move": [
+        3,
+        1
+      ],
+      "magnet": false
+    },
+    {
+      "move": [
+        3,
+        3
+      ],
+      "magnet": true
+    },
+    {
+      "move": [
+        3,
+        6
+      ],
+      "magnet": false
+    },
+    {
+      "move": [
+        3,
+        4
+      ],
+      "magnet": true
+    },
+    {
+      "move": [
+        1,
+        0
+      ],
+      "magnet": false
+    },
+    {
+      "move": [
+        1.5,
+        0.5
+      ],
+      "magnet": true
+    },
+    {
+      "move": [
+        1.5,
+        1.5
+      ],
+      "magnet": true
+    },
+    {
+      "move": [
+        2,
+        2
+      ],
+      "magnet": true
+    },
+    {
+      "move": [
+        4,
+        3
+      ],
+      "magnet": false
+    },
+    {
+      "move": [
+        5,
+        2
+      ],
+      "magnet": true
+    },
+    {
+      "move": [
+        7,
+        2
+      ],
+      "magnet": true
+    },
+    {
+      "move": [
+        9,
+        0
+      ],
+      "magnet": true
+    },
+    {
+      "move": [
+        3,
+        4
+      ],
+      "magnet": false
+    },
+    {
+      "move": [
+        4,
+        3
+      ],
+      "magnet": true
+    },
+    {
+      "move": [
+        4,
+        3
+      ],
+      "magnet": false
+    },
+    {
+      "move": [
+        3,
+        2
+      ],
+      "magnet": true
+    },
+    {
+      "move": [
+        2,
+        3
+      ],
+      "magnet": true
+    },
+    {
+      "move": [
+        1,
+        2
+      ],
+      "magnet": true
+    },
+    {
+      "move": [
+        0,
+        2
+      ],
+      "magnet": true
+    },
+    {
+      "move": [
+        -2,
+        0
+      ],
+      "magnet": true
+    },
+    {
+      "move": [
+        2,
+        2
+      ],
+      "magnet": false
+    },
+    {
+      "move": [
+        2.5,
+        2.5
+      ],
+      "magnet": true
+    },
+    {
+      "move": [
+        3.5,
+        2.5
+      ],
+      "magnet": true
+    },
+    {
+      "move": [
+        4,
+        3
+      ],
+      "magnet": true
+    },
+    {
+      "move": [
+        6,
+        7
+      ],
+      "magnet": false
+    },
+    {
+      "move": [
+        5.5,
+        6.5
+      ],
+      "magnet": true
+    },
+    {
+      "move": [
+        5.5,
+        5.5
+      ],
+      "magnet": true
+    },
+    {
+      "move": [
+        5,
+        5
+      ],
+      "magnet": true
+    },
+    {
+      "move": [
+        3,
+        0
+      ],
+      "magnet": false
+    },
+    {
+      "move": [
+        3,
+        2
+      ],
+      "magnet": true
+    },
+    {
+      "move": [
+        4,
+        6
+      ],
+      "magnet": false
+    },
+    {
+      "move": [
+        4,
+        4
+      ],
+      "magnet": true
+    },
+    {
+      "move": [
+        4,
+        4
+      ],
+      "magnet": false
+    },
+    {
+      "move": [
+        3,
+        4
+      ],
+      "magnet": true
+    },
+    {
+      "move": [
+        1,
+        2
+      ],
+      "magnet": true
+    },
+    {
+      "move": [
+        0,
+        2
+      ],
+      "magnet": true
+    },
+    {
+      "move": [
+        -1,
+        1
+      ],
+      "magnet": true
+    },
+    {
+      "move": [
+        -2,
+        1
+      ],
+      "magnet": true
+    },
+    {
+      "move": [
+        3,
+        3
+      ],
+      "magnet": false
+    },
+    {
+      "move": [
+        4,
+        4
+      ],
+      "magnet": true
+    },
+    {
+      "move": [
+        3,
+        7
+      ],
+      "magnet": false
+    },
+    {
+      "move": [
+        0,
+        4
+      ],
+      "magnet": true
+    },
+    {
+      "move": [
+        2,
+        0
+      ],
+      "magnet": false
+    },
+    {
+      "move": [
+        3,
+        1
+      ],
+      "magnet": true
+    },
+    {
+      "move": [
+        4,
+        4
+      ],
+      "magnet": false
+    },
+    {
+      "move": [
+        6,
+        2
+      ],
+      "magnet": true
+    },
+    {
+      "move": [
+        7,
+        2
+      ],
+      "magnet": true
+    },
+    {
+      "move": [
+        8,
+        1
+      ],
+      "magnet": true
+    },
+    {
+      "move": [
+        9,
+        1
+      ],
+      "magnet": true
+    },
+    {
+      "move": [
+        0,
+        4
+      ],
+      "magnet": false
+    },
+    {
+      "move": [
+        4,
+        4
+      ],
+      "magnet": true
+    },
+    {
+      "move": [
+        0,
+        0
+      ],
+      "magnet": false
+    },
+    {
+      "move": [
+        3,
+        0
+      ],
+      "magnet": true
+    },
+    {
+      "move": [
+        4,
+        0
+      ],
+      "magnet": false
+    },
+    {
+      "move": [
+        4,
+        -1
+      ],
+      "magnet": true
+    },
+    {
+      "move": [
+        2,
+        -1
+      ],
+      "magnet": true
+    },
+    {
+      "move": [
+        2,
+        0
+      ],
+      "magnet": true
+    },
+    {
+      "move": [
+        4,
+        3
+      ],
+      "magnet": false
+    },
+    {
+      "move": [
+        5,
+        2
+      ],
+      "magnet": true
+    },
+    {
+      "move": [
+        7,
+        2
+      ],
+      "magnet": true
+    },
+    {
+      "move": [
+        8,
+        1
+      ],
+      "magnet": true
+    },
+    {
+      "move": [
+        9,
+        2
+      ],
+      "magnet": true
+    },
+    {
+      "move": [
+        10,
+        1
+      ],
+      "magnet": true
+    },
+    {
+      "move": [
+        5,
+        5
+      ],
+      "magnet": false
+    },
+    {
+      "move": [
+        4.5,
+        4.5
+      ],
+      "magnet": true
+    },
+    {
+      "move": [
+        4.5,
+        3.5
+      ],
+      "magnet": true
+    },
+    {
+      "move": [
+        4,
+        3
+      ],
+      "magnet": true
+    },
+    {
+      "move": [
+        3,
+        2
+      ],
+      "magnet": false
+    },
+    {
+      "move": [
+        3,
+        7
+      ],
+      "magnet": true
+    },
+    {
+      "move": [
+        3,
+        7
+      ],
+      "magnet": false
+    },
+    {
+      "move": [
+        8,
+        2
+      ],
+      "magnet": true
+    },
+    {
+      "move": [
+        9,
+        2
+      ],
+      "magnet": true
+    },
+    {
+      "move": [
+        10,
+        3
+      ],
+      "magnet": true
+    },
+    {
+      "move": [
+        4,
+        7
+      ],
+      "magnet": false
+    },
+    {
+      "move": [
+        3,
+        7
+      ],
+      "magnet": true
+    },
+    {
+      "move": [
+        3,
+        1
+      ],
+      "magnet": false
+    },
+    {
+      "move": [
+        6,
+        4
+      ],
+      "magnet": true
+    },
+    {
+      "move": [
+        3,
+        7
+      ],
+      "magnet": false
+    },
+    {
+      "move": [
+        2,
+        6
+      ],
+      "magnet": true
+    },
+    {
+      "move": [
+        6,
+        4
+      ],
+      "magnet": false
+    },
+    {
+      "move": [
+        3,
+        7
+      ],
+      "magnet": true
+    }
+  ]
+}

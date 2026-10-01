@@ -1,0 +1,8 @@
+{
+  "start": [0, 0],
+  "steps": [
+    {"pause": 0.5},
+    {"arrow": ["e1", "f2"], "color": "#ff2a2a", "hold": 1.0},
+    {"pause": 2.4}
+  ]
+}

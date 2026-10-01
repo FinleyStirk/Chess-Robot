@@ -1,0 +1,4 @@
+# Re-downloadable with fetch_assets.py, and renders -- neither belongs in git.
+assets/
+out/
+__pycache__/

@@ -1,0 +1,191 @@
+<!doctype html>
+<!--
+  Local preview of a rendered frame sequence as a scroll-driven section, the
+  way the website will use it: frames are preloaded and drawn to a pinned
+  full-screen canvas, and scroll position picks the frame.
+
+    open render/scroll_preview.html
+    open "render/scroll_preview.html?seq=office_to_knight_preview&count=120"
+
+  seq   = folder in render/out/ (frames inside are named <seq>_0001.webp ...)
+  count = number of frames
+  vh    = how much scrolling the sequence takes, in screen heights x100 (default 400)
+
+  Captions: if the folder has a markers.json (written by render.py from a
+  program's "marker" steps), each entry in CAPTIONS fades in on the left at
+  its `from` marker's frame and out at its `to` marker's frame.
+  Serve it (frames load more reliably than from file://):
+    cd render && python3 -m http.server 8765
+    open "http://127.0.0.1:8765/scroll_preview.html?seq=...&count=...&vh=..."
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Scroll Preview</title>
+<style>
+  :root { --bg: #0e0f11; --fg: #eceef1; --muted: #8a8f98; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: var(--bg); color: var(--fg);
+               font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
+  .intro, .outro { height: 100vh; display: flex; flex-direction: column; align-items: center;
+                   justify-content: center; text-align: center; padding: 0 16px; }
+  .intro h1, .outro h2 { margin: 0 0 12px; font-size: clamp(28px, 6vw, 64px); font-weight: 650; }
+  .intro p, .outro p { margin: 0; color: var(--muted); }
+  /* The scrubbed section: tall track, sticky canvas inside it. Track height
+     sets how much scrolling the whole sequence takes. */
+  .track { position: relative; height: 400vh; }
+  .sticky { position: sticky; top: 0; height: 100vh; overflow: hidden; }
+  canvas { display: block; width: 100%; height: 100%; }
+  /* Captions: a heading box, optionally with a body-text box under it,
+     fading/sliding in on the left between their markers. */
+  .caption { position: absolute; left: clamp(16px, 5vw, 72px); top: 50%; width: min(380px, calc(100% - 32px));
+             display: flex; flex-direction: column; gap: 12px;
+             transform: translate(-24px, -50%); opacity: 0; pointer-events: none;
+             transition: opacity .5s ease, transform .5s ease; }
+  .caption.visible { opacity: 1; transform: translate(0, -50%); pointer-events: auto; }
+  .caption.right { left: auto; right: clamp(16px, 5vw, 72px); transform: translate(24px, -50%); }
+  .caption.right.visible { transform: translate(0, -50%); }
+  .panel { background: rgba(14, 15, 17, .72); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px);
+           border: 1px solid rgba(255,255,255,.08); border-radius: 14px; padding: 24px 26px; }
+  .panel h2 { margin: 0; font-size: clamp(22px, 2.6vw, 30px); line-height: 1.15; }
+  .panel p { margin: 0; color: #c3c7ce; line-height: 1.55; font-size: 15px; }
+  @media (max-width: 640px) {  /* phones: sit at the bottom instead of the left */
+    .caption, .caption.right { top: auto; bottom: 16px; left: 16px; right: auto; transform: translateY(24px); }
+    .caption.visible, .caption.right.visible { transform: translateY(0); }
+  }
+  .hud { position: fixed; right: 12px; bottom: 12px; font: 12px/1.4 ui-monospace, Menlo, monospace;
+         color: var(--muted); background: rgba(0,0,0,.45); padding: 6px 8px; border-radius: 6px; }
+  .loading { position: fixed; inset: 0; display: flex; align-items: center; justify-content: center;
+             background: var(--bg); color: var(--muted); z-index: 2; }
+</style>
+</head>
+<body>
+  <div class="loading" id="loading">Loading frames…</div>
+
+  <section class="intro">
+    <h1>Chess Robot</h1>
+    <p>Scroll down</p>
+  </section>
+
+  <section class="track" id="track">
+    <div class="sticky">
+      <canvas id="canvas"></canvas>
+      <div id="captions"></div>
+    </div>
+  </section>
+
+  <section class="outro">
+    <h2>End of sequence</h2>
+    <p>Scroll back up to scrub in reverse</p>
+  </section>
+
+  <div class="hud" id="hud"></div>
+
+<script>
+  const params = new URLSearchParams(location.search);
+  const seq = params.get("seq") || "office_to_knight_preview";
+  const count = parseInt(params.get("count") || "120", 10);
+  if (params.get("vh")) document.getElementById("track").style.height = `${parseInt(params.get("vh"), 10)}vh`;
+  const frameUrl = (i) => `out/${seq}/${seq}_${String(i + 1).padStart(4, "0")}.webp`;
+
+  const canvas = document.getElementById("canvas");
+  const ctx = canvas.getContext("2d");
+  const track = document.getElementById("track");
+  const hud = document.getElementById("hud");
+  const frames = [];
+
+  // Shown between two markers (frame numbers from the folder's markers.json).
+  // `body` (optional) adds a box of text under the heading box; `side: "right"`
+  // puts it on the right of the screen instead of the left.
+  const CAPTIONS = [
+    { text: "Piece Movement",   from: "piece_movement_start",  to: "piece_movement_end",
+      body: "The gantry system has a servo motor with a magnet attached to it. As the magnet is only close " +
+            "enough to attract the pieces when it is directly under them, by rotating the servo motor we can " +
+            "toggle whether or not it is moving a piece." },
+    { text: "Knight Movement",  from: "knight_movement_start", to: "knight_movement_end",
+      body: "One of the challenges of a 2D board is that knights can't just be lifted up and over other " +
+            "pieces. Our solution was to make the base of the knight smaller than the other pieces. This " +
+            "allows the knight to easily slide between two pieces along the edge of a square stopping it " +
+            "ever getting blocked in." },
+    { text: "Capturing Pieces", from: "capture_start",         to: "capture_end", side: "right",
+      body: "Moving pieces off the board often cannot be done with some simple straight line move. The " +
+            "solution is to perform a breadth first search over the free squares on the board to find the " +
+            "shortest path between the captured piece and its destination. Once the captured piece has been " +
+            "removed, the robot can complete the initial movement unobstructed" },
+  ];
+  let captions = [];  // [{el, from, to}] with frame numbers, once markers.json has loaded
+
+  fetch(`out/${seq}/markers.json`)
+    .then((response) => (response.ok ? response.json() : {}))
+    .catch(() => ({}))
+    .then((markers) => {
+      const container = document.getElementById("captions");
+      captions = CAPTIONS.filter((c) => c.from in markers && c.to in markers).map((c) => {
+        const el = document.createElement("div");
+        el.className = c.side === "right" ? "caption right" : "caption";
+        const heading = el.appendChild(document.createElement("div"));
+        heading.className = "panel";
+        heading.appendChild(document.createElement("h2")).textContent = c.text;
+        if (c.body) {
+          const body = el.appendChild(document.createElement("div"));
+          body.className = "panel";
+          body.appendChild(document.createElement("p")).textContent = c.body;
+        }
+        container.appendChild(el);
+        return { el, from: markers[c.from], to: markers[c.to] };
+      });
+      update();
+    });
+  let current = -1;
+
+  function resize() {
+    const dpr = window.devicePixelRatio || 1;
+    canvas.width = Math.round(canvas.clientWidth * dpr);
+    canvas.height = Math.round(canvas.clientHeight * dpr);
+    current = -1;
+    update();
+  }
+
+  // Cover-fit, like background-size: cover, so it fills any screen shape.
+  function draw(img) {
+    const scale = Math.max(canvas.width / img.naturalWidth, canvas.height / img.naturalHeight);
+    const w = img.naturalWidth * scale, h = img.naturalHeight * scale;
+    ctx.drawImage(img, (canvas.width - w) / 2, (canvas.height - h) / 2, w, h);
+  }
+
+  function update() {
+    const rect = track.getBoundingClientRect();
+    const scrollable = track.offsetHeight - window.innerHeight;
+    const progress = Math.min(1, Math.max(0, -rect.top / scrollable));
+    const index = Math.round(progress * (count - 1));
+    if (index !== current && frames[index] && frames[index].complete && frames[index].naturalWidth) {
+      current = index;
+      draw(frames[index]);
+    }
+    const frame = index + 1;  // markers use Blender's frame numbers, which start at 1
+    for (const c of captions) c.el.classList.toggle("visible", frame >= c.from && frame <= c.to);
+    hud.textContent = `frame ${index + 1} / ${count}  ·  ${(progress * 100).toFixed(0)}%`;
+  }
+
+  let loaded = 0, failed = 0;
+  for (let i = 0; i < count; i++) {
+    const img = new Image();
+    img.onload = img.onerror = (e) => {
+      if (e.type === "error") failed++;
+      if (++loaded === count) {
+        document.getElementById("loading").style.display = failed
+          ? (document.getElementById("loading").textContent = `${failed} frame(s) failed to load — check seq/count`, "flex")
+          : "none";
+        resize();
+      }
+    };
+    img.src = frameUrl(i);
+    frames.push(img);
+  }
+
+  window.addEventListener("scroll", () => requestAnimationFrame(update), { passive: true });
+  window.addEventListener("resize", resize);
+</script>
+</body>
+</html>

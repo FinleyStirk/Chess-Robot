@@ -1,0 +1,72 @@
+{
+ "position": "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
+ "storage": [
+  {
+   "square": [
+    -3,
+    4
+   ],
+   "piece": "q"
+  },
+  {
+   "square": [
+    10,
+    4
+   ],
+   "piece": "Q"
+  }
+ ],
+ "start": [
+  0,
+  0
+ ],
+ "camera": "office",
+ "steps": [
+  {
+   "pause": 1.0
+  },
+  {
+   "move": [
+    4,
+    1
+   ],
+   "magnet": false,
+   "speed_mm_s": 450,
+   "accel_mm_s2": 3000
+  },
+  {
+   "pause": 0.15
+  },
+  {
+   "camera": {
+    "under": "d2",
+    "looking_at": "e2"
+   },
+   "seconds": 2.0
+  },
+  {
+   "pause": 1.5
+  },
+  {
+   "move": [
+    4,
+    3
+   ],
+   "magnet": true,
+   "camera_follow": true
+  },
+  {
+   "pause": 0.6
+  },
+  {
+   "camera": "player",
+   "seconds": 2.0
+  },
+  {
+   "pause": 0.3
+  },
+  {
+   "pause": 0.7
+  }
+ ]
+}
